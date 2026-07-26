@@ -13,7 +13,12 @@ export interface ReftekAppDefinition {
   appId: string;
   name: string;
   category: string;
-  /** Lucide icon name rendered on the frontend (e.g. "Users", "BarChart3") */
+  /**
+   * Icon shown on the frontend:
+   * - Lucide name (e.g. "Users") — must exist in ReftekPage ICON_MAP
+   * - Static image path under frontend/public (e.g. "/reftek-icons/hooshan.png")
+   * - Absolute image URL (e.g. "https://cdn.example.com/logo.png")
+   */
   icon: string;
   description?: string;
   sortOrder?: number;
@@ -26,63 +31,66 @@ export interface ReftekAppDefinition {
 
 export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
-    appId: "hr-portal",
-    name: "پورتال منابع انسانی",
-    category: "منابع انسانی",
-    icon: "Users",
-    description: "درخواست مرخصی، احکام و اطلاعات پرسنلی",
+    appId: "hooshan",
+    name: "هوشان",
+    category: "هوش مصنوعی",
+    icon: "/reftek-icons/hooshan.webp",
     sortOrder: 1,
     linkType: "static",
-    url: "https://example.com/hr",
+    url: "https://houshan.ai/",
   },
   {
-    appId: "attendance",
-    name: "حضور و غیاب",
-    category: "منابع انسانی",
-    icon: "Clock",
-    description: "ثبت و مشاهده ساعات کاری",
-    sortOrder: 2,
+    appId: "game-center",
+    name: "گیم سنتر",
+    category: "اپلیکیشن، گیم و خدمات موبایل",
+    icon: "/reftek-icons/game-center.webp",
+    sortOrder: 1,
     linkType: "static",
-    url: "https://example.com/attendance",
+    url: "https://irangamecenter.com/",
   },
   {
-    appId: "finance-desk",
-    name: "میز خدمت مالی",
-    category: "مالی و اداری",
-    icon: "Wallet",
-    description: "درخواست‌ها و پیگیری‌های مالی",
+    appId: "limoomi",
+    name: "لیمومی",
+    category: "ورزش، سلامت جسم و ذهن",
+    icon: "/reftek-icons/limoomi.png",
     sortOrder: 1,
     linkType: "static",
     url: "https://example.com/finance",
   },
   {
-    appId: "procurement",
-    name: "سامانه تدارکات",
-    category: "مالی و اداری",
-    icon: "ShoppingCart",
-    description: "ثبت درخواست خرید کالا و خدمات",
+    appId: "fitamin",
+    name: "فیتامین",
+    category: "ورزش، سلامت جسم و ذهن",
+    icon: "/reftek-icons/fitamin.svg",
     sortOrder: 2,
-    linkType: "dynamic",
-    resolveUrl: "https://example.com/api/apps/procurement/launch",
+    linkType: "static",
+    url: "https://fitamin.ir/",
   },
   {
-    appId: "helpdesk",
-    name: "میز خدمت فناوری",
-    category: "ابزارهای فنی",
-    icon: "Headset",
-    description: "ثبت تیکت و پیگیری پشتیبانی",
+    appId: "aramia",
+    name: "آرامیا",
+    category: "ورزش، سلامت جسم و ذهن",
+    icon: "/reftek-icons/aramia.png",
+    sortOrder: 3,
+    linkType: "static",
+    url: "https://aramia.ir/",
+  },
+  {
+    appId: "zaban-master",
+    name: "زبان مستر",
+    category: "آموزش و مهارت آموزی",
+    icon: "/reftek-icons/zaban-master.png",
     sortOrder: 1,
     linkType: "static",
-    url: "https://example.com/helpdesk",
+    url: "https://zabanmaster.com/",
   },
   {
-    appId: "monitoring",
-    name: "مانیتورینگ سرویس‌ها",
-    category: "ابزارهای فنی",
-    icon: "Activity",
-    description: "وضعیت سرویس‌ها و هشدارها",
-    sortOrder: 2,
-    linkType: "dynamic",
-    resolveUrl: "https://example.com/api/apps/monitoring/launch",
+    appId: "fixa",
+    name: "فیکسا",
+    category: "خدمات خانه",
+    icon: "/reftek-icons/fixa.svg",
+    sortOrder: 1,
+    linkType: "static",
+    url: "https://fixa.ir/",
   },
 ];

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Moon, Sun, Plus, Package, AppWindow } from "lucide-react";
+import { Moon, Sun, Plus, Package, AppWindow, User } from "lucide-react";
 import { useAuth, useAdminAuth, useTheme } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,6 +48,33 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
+      </header>
+      <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
+    </div>
+  );
+}
+
+export function ReftekLayout({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const displayName = user ? `${user.name} ${user.family}`.trim() : null;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <img src="/favicon.png" alt="" className="h-[30px] w-[70px]" />
+            {/* <span className="text-base font-bold tracking-tight">RefTek</span> */}
+          </div>
+          {displayName && (
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-sm text-muted-foreground">{displayName}</span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <User className="h-4 w-4" />
+              </span>
+            </div>
+          )}
+        </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
     </div>
