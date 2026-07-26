@@ -56,6 +56,7 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
 
 export function ReftekLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const displayName = user ? `${user.name} ${user.family}`.trim() : null;
 
   return (
@@ -66,14 +67,24 @@ export function ReftekLayout({ children }: { children: React.ReactNode }) {
             <img src="/favicon.png" alt="" className="h-[30px] w-[70px]" />
             {/* <span className="text-base font-bold tracking-tight">RefTek</span> */}
           </div>
-          {displayName && (
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-sm text-muted-foreground">{displayName}</span>
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <User className="h-4 w-4" />
-              </span>
-            </div>
-          )}
+          <div className="flex min-w-0 items-center gap-2">
+            {displayName && (
+              <>
+                <span className="truncate text-sm text-muted-foreground">{displayName}</span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <User className="h-4 w-4" />
+                </span>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "حالت روشن" : "حالت تاریک"}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>

@@ -10,6 +10,7 @@ import OrderDetailPage from "@/pages/user/OrderDetailPage";
 import CreateOrderPage from "@/pages/user/CreateOrderPage";
 import PaymentResultPage from "@/pages/user/PaymentResultPage";
 import ReftekPage from "@/pages/user/ReftekPage";
+import ReftekCategoryPage from "@/pages/user/ReftekCategoryPage";
 
 const AdminLoginPage = lazy(() => import("@/pages/admin/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("@/pages/admin/AdminDashboardPage"));
@@ -60,6 +61,7 @@ export default function App() {
                   {/* Auth bootstrap for ?ut= wallet login; required by UserGuard */}
                   <Route path="/" element={<SplashPage />} />
                   <Route path="/reftek" element={<UserGuard><ReftekPage /></UserGuard>} />
+                  <Route path="/reftek/category/:category" element={<UserGuard><ReftekCategoryPage /></UserGuard>} />
                   {!isProduction && (
                     <>
                       <Route path="/orders" element={<UserGuard><OrdersPage /></UserGuard>} />
