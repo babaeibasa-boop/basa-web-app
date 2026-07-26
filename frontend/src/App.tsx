@@ -9,6 +9,7 @@ import OrdersPage from "@/pages/user/OrdersPage";
 import OrderDetailPage from "@/pages/user/OrderDetailPage";
 import CreateOrderPage from "@/pages/user/CreateOrderPage";
 import PaymentResultPage from "@/pages/user/PaymentResultPage";
+import ReftekPage from "@/pages/user/ReftekPage";
 
 const AdminLoginPage = lazy(() => import("@/pages/admin/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("@/pages/admin/AdminDashboardPage"));
@@ -59,6 +60,7 @@ export default function App() {
                   <Route path="/orders/new" element={<UserGuard><CreateOrderPage /></UserGuard>} />
                   <Route path="/orders/:id" element={<UserGuard><OrderDetailPage /></UserGuard>} />
                   <Route path="/payment/result" element={<UserGuard><PaymentResultPage /></UserGuard>} />
+                  <Route path="/reftek" element={<UserGuard><ReftekPage /></UserGuard>} />
                   <Route path="/admin/login" element={<AdminLoginPage />} />
                   <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />
                   <Route path="/admin/orders" element={<AdminGuard><AdminOrdersPage /></AdminGuard>} />

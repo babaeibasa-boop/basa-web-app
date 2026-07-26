@@ -69,3 +69,12 @@ export interface PaginatedResult<T> {
   page: number;
   limit: number;
 }
+
+export interface ReftekApp {
+  appId: string;
+  name: string;
+  category: string;
+  icon: string;
+  description: string | null;
+  linkType: "static" | "dynamic";
+}

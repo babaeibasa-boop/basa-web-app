@@ -1,5 +1,13 @@
 import api from "@/lib/api";
-import type { ApiResponse, User, Order, SubscriptionProduct, Admin, DashboardStats } from "@/types";
+import type {
+  ApiResponse,
+  User,
+  Order,
+  SubscriptionProduct,
+  Admin,
+  DashboardStats,
+  ReftekApp,
+} from "@/types";
 
 export const authApi = {
   walletLogin: (ut: string) =>
@@ -21,6 +29,12 @@ export const paymentApi = {
     api.post<unknown, ApiResponse<{ payUrl: string }>>(`/payments/invoices/${invoiceId}/pay`),
   verifyPayment: (data: { pt: string; pn: string; st: string }) =>
     api.post<unknown, ApiResponse<{ success: boolean; orderId: string }>>("/payments/verify", data),
+};
+
+export const reftekApi = {
+  getApps: () => api.get<unknown, ApiResponse<ReftekApp[]>>("/reftek/apps"),
+  launchApp: (appId: string) =>
+    api.get<unknown, ApiResponse<{ url: string }>>(`/reftek/apps/${encodeURIComponent(appId)}/launch`),
 };
 
 export const adminApi = {

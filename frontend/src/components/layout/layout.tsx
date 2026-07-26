@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Moon, Sun, Plus, Package } from "lucide-react";
+import { Moon, Sun, Plus, Package, AppWindow } from "lucide-react";
 import { useAuth, useAdminAuth, useTheme } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { to: "/orders", label: "سفارش‌ها", icon: Package },
     { to: "/orders/new", label: "سفارش جدید", icon: Plus },
+    { to: "/reftek", label: "RefTek", icon: AppWindow },
   ];
 
   return (
