@@ -55,7 +55,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
     icon: "/reftek-icons/limoomi.png",
     sortOrder: 1,
     linkType: "static",
-    url: "https://example.com/finance",
+    url: "https://limoome.com/",
   },
   {
     appId: "fitamin",
@@ -73,7 +73,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
     icon: "/reftek-icons/aramia.png",
     sortOrder: 3,
     linkType: "static",
-    url: "https://aramia.ir/",
+    url: "https://aramia.me/",
   },
   {
     appId: "zaban-master",
@@ -91,6 +91,6 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
     icon: "/reftek-icons/fixa.svg",
     sortOrder: 1,
     linkType: "static",
-    url: "https://fixa.ir/",
+    url: "https://fixa24.com/",
   },
 ];
