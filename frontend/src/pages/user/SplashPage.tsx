@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { authApi } from "@/api";
 import { Skeleton } from "@/components/ui/badge";
 
+const postLoginPath = import.meta.env.PROD ? "/reftek" : "/orders";
+
 export default function SplashPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -13,12 +15,12 @@ export default function SplashPage() {
     const ut = searchParams.get("ut");
 
     if (isAuthenticated && !ut) {
-      navigate("/orders", { replace: true });
+      navigate(postLoginPath, { replace: true });
       return;
     }
 
     if (!ut) {
-      navigate("/orders", { replace: true });
+      navigate(postLoginPath, { replace: true });
       return;
     }
 
@@ -26,10 +28,10 @@ export default function SplashPage() {
       .walletLogin(ut)
       .then((res) => {
         login(res.data.token, res.data.user);
-        navigate("/orders", { replace: true });
+        navigate(postLoginPath, { replace: true });
       })
       .catch(() => {
-        navigate("/orders", { replace: true });
+        navigate(postLoginPath, { replace: true });
       });
   }, [searchParams, login, navigate, isAuthenticated]);
 

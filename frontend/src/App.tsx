@@ -46,6 +46,8 @@ function PageFallback() {
   );
 }
 
+const isProduction = import.meta.env.PROD;
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -55,19 +57,27 @@ export default function App() {
             <BrowserRouter>
               <Suspense fallback={<PageFallback />}>
                 <Routes>
+                  {/* Auth bootstrap for ?ut= wallet login; required by UserGuard */}
                   <Route path="/" element={<SplashPage />} />
-                  <Route path="/orders" element={<UserGuard><OrdersPage /></UserGuard>} />
-                  <Route path="/orders/new" element={<UserGuard><CreateOrderPage /></UserGuard>} />
-                  <Route path="/orders/:id" element={<UserGuard><OrderDetailPage /></UserGuard>} />
-                  <Route path="/payment/result" element={<UserGuard><PaymentResultPage /></UserGuard>} />
                   <Route path="/reftek" element={<UserGuard><ReftekPage /></UserGuard>} />
-                  <Route path="/admin/login" element={<AdminLoginPage />} />
-                  <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />
-                  <Route path="/admin/orders" element={<AdminGuard><AdminOrdersPage /></AdminGuard>} />
-                  <Route path="/admin/orders/:id" element={<AdminGuard><AdminOrderDetailPage /></AdminGuard>} />
-                  <Route path="/admin/users" element={<AdminGuard><AdminUsersPage /></AdminGuard>} />
-                  <Route path="/admin/settings" element={<AdminGuard><AdminSettingsPage /></AdminGuard>} />
-                  <Route path="*" element={<Navigate to="/orders" replace />} />
+                  {!isProduction && (
+                    <>
+                      <Route path="/orders" element={<UserGuard><OrdersPage /></UserGuard>} />
+                      <Route path="/orders/new" element={<UserGuard><CreateOrderPage /></UserGuard>} />
+                      <Route path="/orders/:id" element={<UserGuard><OrderDetailPage /></UserGuard>} />
+                      <Route path="/payment/result" element={<UserGuard><PaymentResultPage /></UserGuard>} />
+                      <Route path="/admin/login" element={<AdminLoginPage />} />
+                      <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />
+                      <Route path="/admin/orders" element={<AdminGuard><AdminOrdersPage /></AdminGuard>} />
+                      <Route path="/admin/orders/:id" element={<AdminGuard><AdminOrderDetailPage /></AdminGuard>} />
+                      <Route path="/admin/users" element={<AdminGuard><AdminUsersPage /></AdminGuard>} />
+                      <Route path="/admin/settings" element={<AdminGuard><AdminSettingsPage /></AdminGuard>} />
+                    </>
+                  )}
+                  <Route
+                    path="*"
+                    element={<Navigate to={isProduction ? "/reftek" : "/orders"} replace />}
+                  />
                 </Routes>
               </Suspense>
             </BrowserRouter>
