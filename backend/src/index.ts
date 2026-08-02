@@ -9,6 +9,7 @@ import orderRoutes from "./routes/order.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import reftekRoutes from "./routes/reftek.routes.js";
+import walletTopRoutes from "./routes/wallet/top/wallet-top.routes.js";
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/reftek", reftekRoutes);
+app.use("/wallet/top", walletTopRoutes);
 
 app.use(errorHandler);
 
