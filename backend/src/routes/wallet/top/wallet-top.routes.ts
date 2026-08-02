@@ -8,8 +8,11 @@ import {
   reverseTransactionHandler,
   reverseTransactionPartialHandler,
 } from "../../../controllers/wallet/top/wallet-top.controller.js";
+import { authenticateTopApiPwd } from "../../../middleware/wallet/top/authenticate-pwd.js";
 
 const router = Router();
+
+router.use(authenticateTopApiPwd);
 
 router.get("/isUserExists", isUserExists);
 router.get("/getUserWallets", getUserWalletsHandler);
