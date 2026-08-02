@@ -7,7 +7,7 @@ const configSchema = z.object({
   port: z.coerce.number().default(3001),
   nodeEnv: z.enum(["development", "production", "test"]).default("development"),
   databaseUrl: z.string().min(1),
-  // Single URL, or comma-separated list for multiple frontends.
+  // "*" = allow all origins; otherwise a single URL or comma-separated list.
   frontendUrl: z.string().min(1),
   userJwtSecret: z.string().min(32),
   adminJwtSecret: z.string().min(32),

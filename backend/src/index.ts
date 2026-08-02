@@ -13,21 +13,28 @@ import walletTopRoutes from "./routes/wallet/top/wallet-top.routes.js";
 
 const app = express();
 
-// Allow cross-origin API calls from the deployed frontend.
+// Allow cross-origin API calls from the configured frontend(s).
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
   }),
 );
 
-const allowedOrigins = config.frontendUrl
-  .split(",")
-  .map((url) => url.trim().replace(/\/$/, ""))
-  .filter(Boolean);
+const allowAllOrigins = config.frontendUrl.trim() === "*";
+const allowedOrigins = allowAllOrigins
+  ? []
+  : config.frontendUrl
+      .split(",")
+      .map((url) => url.trim().replace(/\/$/, ""))
+      .filter(Boolean);
 
 app.use(
   cors({
     origin(origin, callback) {
+      if (allowAllOrigins) {
+        callback(null, true);
+        return;
+      }
       // Non-browser clients (curl, server-to-server) send no Origin.
       if (!origin) {
         callback(null, true);
@@ -60,7 +67,11 @@ app.use(errorHandler);
 
 app.listen(config.port, () => {
   console.log(`Server running on port ${config.port}`);
-  console.log(`CORS allowed origins: ${allowedOrigins.join(", ")}`);
+  console.log(
+    allowAllOrigins
+      ? "CORS: all origins allowed"
+      : `CORS allowed origins: ${allowedOrigins.join(", ")}`,
+  );
 });
 
 export default app;
