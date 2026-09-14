@@ -75,15 +75,25 @@ class WalletService {
     });
   }
 
-  async getUserInfo(ut: string): Promise<WalletUserInfo> {
+  private pwdRequestConfig(pwd?: string) {
+    return pwd ? { headers: { PWD: pwd } } : undefined;
+  }
+
+  async getUserInfo(ut: string, pwd?: string): Promise<WalletUserInfo> {
+    console.log("user_token", ut);
+    console.log("pwd", pwd);
     try {
-      const { data } = await this.client.post<WalletResponse>("", {
-        "method": "getUserInfo",
-        "data": {
-          "user_token": `${ut}`
+      const { data } = await this.client.post<WalletResponse>(
+        "",
+        {
+          "method": "getUserInfo",
+          "data": {
+            "user_token": `${ut}`
+          },
+          "api_version": "1"
         },
-        "api_version": "1"
-      });
+        this.pwdRequestConfig(pwd),
+      );
       if (data.status !== "OK" || !(data.data) || data.data.status !== "Done") {
         throw new AppError("خطا در احراز هویت کیف پول", 401);
       }
@@ -94,7 +104,7 @@ class WalletService {
     }
   }
 
-  async requestPayment(input: WalletPaymentRequest): Promise<WalletPaymentResponse["data"]> {
+  async requestPayment(input: WalletPaymentRequest, pwd?: string): Promise<WalletPaymentResponse["data"]> {
     const sendingData = {
       "method": "requestPayment",
       "data": {
@@ -111,6 +121,7 @@ class WalletService {
       const { data: walletPaymentResponse } = await this.client.post<WalletPaymentResponse>(
         "",
         JSON.stringify(sendingData),
+        this.pwdRequestConfig(pwd),
       );
       if (walletPaymentResponse.status !== "OK" || !(walletPaymentResponse.data) || walletPaymentResponse.data.status !== "OK") {
         throw new AppError("خطا در ایجاد درخواست پرداخت", 502);
@@ -125,16 +136,21 @@ class WalletService {
   async settlePayment(
     paymentTrackId: string,
     paymentToken: string,
+    pwd?: string,
   ): Promise<WalletSettleResponse> {
     try {
-      const { data: walletSettleResponse } = await this.client.post<WalletSettleResponse>("", {
-        "method": "settlePayment",
-        "data": {
-          "payment_track_id": paymentTrackId,
-          "payment_token": paymentToken,
+      const { data: walletSettleResponse } = await this.client.post<WalletSettleResponse>(
+        "",
+        {
+          "method": "settlePayment",
+          "data": {
+            "payment_track_id": paymentTrackId,
+            "payment_token": paymentToken,
+          },
+          "api_version": "1"
         },
-        "api_version": "1"
-      });
+        this.pwdRequestConfig(pwd),
+      );
       return walletSettleResponse;
     } catch (error) {
       logWalletError("settlePayment failed", { error: String(error) });
@@ -147,17 +163,22 @@ class WalletService {
     paymentToken: string,
     amount: number,
     type: "Total" | "Partial",
+    pwd?: string,
   ): Promise<WalletReverseResponse> {
     try {
-      const { data: walletReverseResponse } = await this.client.post<WalletReverseResponse>("", {
-        "method": "reversePayment",
-        "data": {
-          "payment_track_id": `${paymentTrackId}`,
-          "payment_token": `${paymentToken}`,
-          "reverse_type": `${type}`,
+      const { data: walletReverseResponse } = await this.client.post<WalletReverseResponse>(
+        "",
+        {
+          "method": "reversePayment",
+          "data": {
+            "payment_track_id": `${paymentTrackId}`,
+            "payment_token": `${paymentToken}`,
+            "reverse_type": `${type}`,
+          },
+          "api_version": "1"
         },
-        "api_version": "1"
-      });
+        this.pwdRequestConfig(pwd),
+      );
       if (walletReverseResponse.status !== "OK" || walletReverseResponse?.data?.status !== "Reversed") {
         throw new AppError("خطا در بازگشت وجه", 502);
       }

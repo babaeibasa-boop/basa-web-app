@@ -1,9 +1,10 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, AdminAuthProvider, useAuth, useAdminAuth } from "@/hooks/use-auth";
 import { ToastProvider } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/badge";
+import { splashLoginSearch, voucherPlatformSlugFromPath } from "@/lib/utils";
 import SplashPage from "@/pages/user/SplashPage";
 import OrdersPage from "@/pages/user/OrdersPage";
 import OrderDetailPage from "@/pages/user/OrderDetailPage";
@@ -11,6 +12,9 @@ import CreateOrderPage from "@/pages/user/CreateOrderPage";
 import PaymentResultPage from "@/pages/user/PaymentResultPage";
 import ReftekPage from "@/pages/user/ReftekPage";
 import ReftekCategoryPage from "@/pages/user/ReftekCategoryPage";
+import VoucherPage from "@/pages/user/VoucherPage";
+import VoucherPlatformPage from "@/pages/user/VoucherPlatformPage";
+import VoucherPurchasesPage from "@/pages/user/VoucherPurchasesPage";
 
 const AdminLoginPage = lazy(() => import("@/pages/admin/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("@/pages/admin/AdminDashboardPage"));
@@ -18,6 +22,9 @@ const AdminOrdersPage = lazy(() => import("@/pages/admin/AdminOrdersPage"));
 const AdminOrderDetailPage = lazy(() => import("@/pages/admin/AdminOrderDetailPage"));
 const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage"));
 const AdminSettingsPage = lazy(() => import("@/pages/admin/AdminSettingsPage"));
+const AdminVoucherPlatformsPage = lazy(() => import("@/pages/admin/AdminVoucherPlatformsPage"));
+const AdminVouchersPage = lazy(() => import("@/pages/admin/AdminVouchersPage"));
+const AdminVoucherSalesPage = lazy(() => import("@/pages/admin/AdminVoucherSalesPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,7 +34,18 @@ const queryClient = new QueryClient({
 
 function UserGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/" replace />;
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const ut = searchParams.get("ut");
+  const isPlatformSso = Boolean(voucherPlatformSlugFromPath(location.pathname));
+
+  if (ut && (isPlatformSso || !isAuthenticated)) {
+    return <Navigate to={`/?${splashLoginSearch(ut, location.pathname, searchParams)}`} replace />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -62,18 +80,24 @@ export default function App() {
                   <Route path="/" element={<SplashPage />} />
                   <Route path="/reftek" element={<UserGuard><ReftekPage /></UserGuard>} />
                   <Route path="/reftek/category/:category" element={<UserGuard><ReftekCategoryPage /></UserGuard>} />
+                  <Route path="/voucher" element={<UserGuard><VoucherPage /></UserGuard>} />
+                  <Route path="/voucher/purchases" element={<UserGuard><VoucherPurchasesPage /></UserGuard>} />
+                  <Route path="/voucher/:slug" element={<UserGuard><VoucherPlatformPage /></UserGuard>} />
+                  <Route path="/payment/result" element={<UserGuard><PaymentResultPage /></UserGuard>} />
                   {!isProduction && (
                     <>
                       <Route path="/orders" element={<UserGuard><OrdersPage /></UserGuard>} />
                       <Route path="/orders/new" element={<UserGuard><CreateOrderPage /></UserGuard>} />
                       <Route path="/orders/:id" element={<UserGuard><OrderDetailPage /></UserGuard>} />
-                      <Route path="/payment/result" element={<UserGuard><PaymentResultPage /></UserGuard>} />
                       <Route path="/admin/login" element={<AdminLoginPage />} />
                       <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />
                       <Route path="/admin/orders" element={<AdminGuard><AdminOrdersPage /></AdminGuard>} />
                       <Route path="/admin/orders/:id" element={<AdminGuard><AdminOrderDetailPage /></AdminGuard>} />
                       <Route path="/admin/users" element={<AdminGuard><AdminUsersPage /></AdminGuard>} />
                       <Route path="/admin/settings" element={<AdminGuard><AdminSettingsPage /></AdminGuard>} />
+                      <Route path="/admin/voucher-platforms" element={<AdminGuard><AdminVoucherPlatformsPage /></AdminGuard>} />
+                      <Route path="/admin/vouchers" element={<AdminGuard><AdminVouchersPage /></AdminGuard>} />
+                      <Route path="/admin/voucher-sales" element={<AdminGuard><AdminVoucherSalesPage /></AdminGuard>} />
                     </>
                   )}
                   <Route

@@ -12,6 +12,13 @@ import {
   phones,
   addPhone,
   deletePhone,
+  voucherPlatforms,
+  addVoucherPlatform,
+  patchVoucherPlatform,
+  removeVoucherPlatform,
+  vouchers,
+  addVoucher,
+  voucherSales,
 } from "../controllers/admin.controller.js";
 import { authenticateAdmin } from "../middleware/auth.js";
 
@@ -34,5 +41,12 @@ router.get("/users", authenticateAdmin, users);
 router.get("/phones", authenticateAdmin, phones);
 router.post("/phones", authenticateAdmin, addPhone);
 router.delete("/phones/:id", authenticateAdmin, deletePhone);
+router.get("/voucher-platforms", authenticateAdmin, voucherPlatforms);
+router.post("/voucher-platforms", authenticateAdmin, addVoucherPlatform);
+router.patch("/voucher-platforms/:id", authenticateAdmin, patchVoucherPlatform);
+router.delete("/voucher-platforms/:id", authenticateAdmin, removeVoucherPlatform);
+router.get("/vouchers", authenticateAdmin, vouchers);
+router.post("/vouchers", authenticateAdmin, addVoucher);
+router.get("/voucher-sales", authenticateAdmin, voucherSales);
 
 export default router;

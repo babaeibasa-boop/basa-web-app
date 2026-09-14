@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, VoucherStatus } from "@prisma/client";
 import { z } from "zod";
 import {
   searchOrders,
@@ -18,6 +18,15 @@ import {
   addAdminPhone,
   removeAdminPhone,
 } from "../services/admin.service.js";
+import {
+  listAdminPlatforms,
+  createPlatform,
+  updatePlatform,
+  deletePlatform,
+  listAdminVouchers,
+  createVoucher,
+  listVoucherSales,
+} from "../services/voucher.service.js";
 import { sendSuccess } from "../lib/response.js";
 import { parseDigitString } from "../lib/digits.js";
 
@@ -39,6 +48,36 @@ const updateAmountSchema = z.object({
 
 const addPhoneSchema = z.object({
   phone: z.string().min(10),
+});
+
+const slugSchema = z
+  .string()
+  .min(1)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "شناسه پلتفرم فقط می‌تواند شامل حروف انگلیسی کوچک، عدد و خط تیره باشد");
+
+const createPlatformSchema = z.object({
+  name: z.string().min(1),
+  slug: slugSchema,
+  logoUrl: z.string().min(1),
+  apiKey: z.string().min(1),
+});
+
+const updatePlatformSchema = z.object({
+  name: z.string().min(1).optional(),
+  slug: slugSchema.optional(),
+  logoUrl: z.string().min(1).optional(),
+  apiKey: z.string().min(1).optional(),
+});
+
+const createVoucherSchema = z.object({
+  platformId: z.string().min(1),
+  amount: z.preprocess(
+    (value) => (typeof value === "string" || typeof value === "number" ? parseDigitString(String(value)) : value),
+    z.string().regex(/^\d+$/, "مبلغ باید عدد باشد"),
+  ),
+  duration: z.string().min(1),
+  expiresAt: z.string().min(1),
+  code: z.string().min(1),
 });
 
 export async function login(req: Request, res: Response, next: NextFunction) {
@@ -150,6 +189,80 @@ export async function deletePhone(req: Request, res: Response, next: NextFunctio
   try {
     await removeAdminPhone(String(req.params.id));
     sendSuccess(res, null, "شماره حذف شد");
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function voucherPlatforms(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const platforms = await listAdminPlatforms();
+    sendSuccess(res, platforms);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function addVoucherPlatform(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = createPlatformSchema.parse(req.body);
+    const platform = await createPlatform(input);
+    sendSuccess(res, platform, "پلتفرم اضافه شد", 201);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function patchVoucherPlatform(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = updatePlatformSchema.parse(req.body);
+    const platform = await updatePlatform(String(req.params.id), input);
+    sendSuccess(res, platform, "پلتفرم بروزرسانی شد");
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function removeVoucherPlatform(req: Request, res: Response, next: NextFunction) {
+  try {
+    await deletePlatform(String(req.params.id));
+    sendSuccess(res, null, "پلتفرم حذف شد");
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function vouchers(req: Request, res: Response, next: NextFunction) {
+  try {
+    const status = req.query.status as VoucherStatus | undefined;
+    const platformId = req.query.platformId as string | undefined;
+    const search = req.query.search as string | undefined;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const result = await listAdminVouchers({ status, platformId, search, page, limit });
+    sendSuccess(res, result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function addVoucher(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = createVoucherSchema.parse(req.body);
+    const voucher = await createVoucher(input);
+    sendSuccess(res, voucher, "واچر اضافه شد", 201);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function voucherSales(req: Request, res: Response, next: NextFunction) {
+  try {
+    const search = req.query.search as string | undefined;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const result = await listVoucherSales({ search, page, limit });
+    sendSuccess(res, result);
   } catch (error) {
     next(error);
   }

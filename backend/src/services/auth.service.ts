@@ -1,11 +1,30 @@
 import { prisma } from "../lib/prisma.js";
+import { decrypt } from "../lib/crypto.js";
+import { AppError } from "../lib/errors.js";
 import { walletService } from "./wallet.service.js";
 import { signUserToken } from "../middleware/auth.js";
 import { logAuth } from "../lib/logger.js";
 
-export async function authenticateWithWalletToken(ut: string) {
-  const walletUser = await walletService.getUserInfo(ut);
-  
+async function resolvePlatformPwd(platformSlug?: string) {
+  if (!platformSlug) return undefined;
+
+  const platform = await prisma.voucherPlatform.findUnique({ where: { slug: platformSlug } });
+  if (!platform) {
+    throw new AppError("پلتفرم یافت نشد", 404);
+  }
+
+  try {
+    return decrypt(platform.encryptedApiKey);
+  } catch {
+    throw new AppError("کلید درگاه پلتفرم نامعتبر است", 500);
+  }
+}
+
+export async function authenticateWithWalletToken(ut: string, platformSlug?: string) {
+  console.log("platformSlug", platformSlug);
+  const pwd = await resolvePlatformPwd(platformSlug);
+  const walletUser = await walletService.getUserInfo(ut, pwd);
+
   const user = await prisma.user.upsert({
     where: { walletId: walletUser.user_id },
     update: {
@@ -24,7 +43,11 @@ export async function authenticateWithWalletToken(ut: string) {
   });
 
   const token = signUserToken({ userId: user.id, walletId: user.walletId });
-  logAuth("User authenticated via wallet", { userId: user.id, walletId: user.walletId });
+  logAuth("User authenticated via wallet", {
+    userId: user.id,
+    walletId: user.walletId,
+    platformSlug,
+  });
 
   return {
     token,

@@ -57,3 +57,53 @@ export const AI_MODEL_LABELS: Record<string, string> = {
   CLAUDE: "Claude",
   GEMINI: "Gemini",
 };
+
+export const VOUCHER_STATUS_LABELS: Record<string, string> = {
+  AVAILABLE: "موجود",
+  RESERVED: "رزرو شده",
+  SOLD: "فروخته شده",
+  CANCELLED: "لغو شده",
+};
+
+export const VOUCHER_PURCHASE_STATUS_LABELS: Record<string, string> = {
+  PENDING_PAYMENT: "در انتظار پرداخت",
+  PAID: "پرداخت شده",
+  CANCELLED: "لغو شده",
+};
+
+const ALLOWED_REDIRECT_PREFIXES = ["/voucher", "/reftek", "/orders", "/payment"];
+
+export function voucherPlatformSlugFromPath(pathname: string): string | null {
+  const path = pathname.split("?")[0] ?? pathname;
+  const match = path.match(/^\/voucher\/([^/]+)$/);
+  if (!match?.[1] || match[1] === "purchases") return null;
+  return match[1];
+}
+
+export function splashLoginSearch(
+  ut: string,
+  pathname: string,
+  currentParams: URLSearchParams,
+): string {
+  const preserved = new URLSearchParams(currentParams);
+  preserved.delete("ut");
+  const extra = preserved.toString();
+  const redirect = pathname + (extra ? `?${extra}` : "");
+  const params = new URLSearchParams();
+  params.set("ut", ut);
+  params.set("redirect", redirect);
+  const platform = voucherPlatformSlugFromPath(pathname) || currentParams.get("platform");
+  if (platform) params.set("platform", platform);
+  return params.toString();
+}
+
+export function safeRedirectPath(value: string | null | undefined, fallback: string): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("://")) {
+    return fallback;
+  }
+  const path = value.split("?")[0] ?? value;
+  const allowed = ALLOWED_REDIRECT_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+  );
+  return allowed ? value : fallback;
+}

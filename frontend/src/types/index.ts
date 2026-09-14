@@ -78,3 +78,67 @@ export interface ReftekApp {
   description: string | null;
   linkType: "static" | "dynamic";
 }
+
+export interface VoucherPlatform {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string;
+  hasApiKey?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface VoucherOffer {
+  amount: string;
+  duration: string;
+  expiresAt: string;
+  availableCount: number;
+}
+
+export interface VoucherPlatformDetail {
+  platform: VoucherPlatform;
+  offers: VoucherOffer[];
+}
+
+export interface VoucherPurchase {
+  id: string;
+  amount: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  voucher: {
+    id: string;
+    duration: string;
+    expiresAt: string;
+    status: string;
+    platform: VoucherPlatform;
+    code: string | null;
+  };
+}
+
+export interface AdminVoucher {
+  id: string;
+  amount: string;
+  duration: string;
+  expiresAt: string;
+  status: string;
+  code: string;
+  createdAt: string;
+  platform: VoucherPlatform;
+}
+
+export interface VoucherSale {
+  id: string;
+  amount: string;
+  status: string;
+  createdAt: string;
+  user: User;
+  voucher: {
+    id: string;
+    duration: string;
+    expiresAt: string;
+    code: string;
+    platform: VoucherPlatform;
+  };
+}

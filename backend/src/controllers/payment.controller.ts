@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { initiatePayment, verifyPayment } from "../services/order.service.js";
+import { verifyVoucherPayment } from "../services/voucher.service.js";
 import { sendSuccess } from "../lib/response.js";
 
 const verifyPaymentSchema = z.object({
@@ -21,8 +22,17 @@ export async function payInvoice(req: Request, res: Response, next: NextFunction
 export async function verifyPaymentCallback(req: Request, res: Response, next: NextFunction) {
   try {
     const { pt, pn, st } = verifyPaymentSchema.parse(req.body);
+    const voucherResult = await verifyVoucherPayment(pt, pn, st);
+    if (voucherResult) {
+      sendSuccess(res, voucherResult, voucherResult.success ? "پرداخت موفق" : "پرداخت ناموفق");
+      return;
+    }
     const result = await verifyPayment(pt, pn, st);
-    sendSuccess(res, result, result.success ? "پرداخت موفق" : "پرداخت ناموفق");
+    sendSuccess(
+      res,
+      { ...result, type: "order" as const },
+      result.success ? "پرداخت موفق" : "پرداخت ناموفق",
+    );
   } catch (error) {
     next(error);
   }

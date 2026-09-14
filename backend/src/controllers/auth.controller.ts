@@ -3,12 +3,15 @@ import { z } from "zod";
 import { authenticateWithWalletToken, getUserProfile } from "../services/auth.service.js";
 import { sendSuccess } from "../lib/response.js";
 
-const walletAuthSchema = z.object({ ut: z.string().min(1, "توکن کیف پول الزامی است") });
+const walletAuthSchema = z.object({
+  ut: z.string().min(1, "توکن کیف پول الزامی است"),
+  platformSlug: z.string().min(1).optional(),
+});
 
 export async function walletAuth(req: Request, res: Response, next: NextFunction) {
   try {
-    const { ut } = walletAuthSchema.parse(req.body);
-    const result = await authenticateWithWalletToken(ut);
+    const { ut, platformSlug } = walletAuthSchema.parse(req.body);
+    const result = await authenticateWithWalletToken(ut, platformSlug);
     sendSuccess(res, result, "ورود موفق");
   } catch (error) {
     next(error);
