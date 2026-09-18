@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import {
   Activity,
@@ -15,7 +16,7 @@ import {
 import { reftekApi } from "@/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import type { ReftekApp } from "@/types";
+import type { ReftekCatalogItem } from "@/types";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Users,
@@ -40,17 +41,25 @@ export function AppIcon({ name }: { name: string }) {
   return <Icon className="h-8 w-8" />;
 }
 
-export function groupByCategory(apps: ReftekApp[]) {
-  const map = new Map<string, ReftekApp[]>();
+export function groupByCategory(apps: ReftekCatalogItem[]) {
+  const map = new Map<string, { categorySlug: string; categoryName: string; apps: ReftekCatalogItem[] }>();
   for (const app of apps) {
-    const list = map.get(app.category) ?? [];
-    list.push(app);
-    map.set(app.category, list);
+    const existing = map.get(app.categorySlug);
+    if (existing) {
+      existing.apps.push(app);
+    } else {
+      map.set(app.categorySlug, {
+        categorySlug: app.categorySlug,
+        categoryName: app.categoryName,
+        apps: [app],
+      });
+    }
   }
-  return Array.from(map.entries()).map(([category, items]) => ({ category, apps: items }));
+  return Array.from(map.values());
 }
 
-export function ReftekAppGrid({ apps }: { apps: ReftekApp[] }) {
+export function ReftekAppGrid({ apps }: { apps: ReftekCatalogItem[] }) {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [launchingId, setLaunchingId] = useState<string | null>(null);
 
@@ -71,16 +80,24 @@ export function ReftekAppGrid({ apps }: { apps: ReftekApp[] }) {
     onSettled: () => setLaunchingId(null),
   });
 
+  function openItem(app: ReftekCatalogItem) {
+    if (app.kind === "voucher" && app.platformSlug) {
+      navigate(`/voucher/${app.platformSlug}`);
+      return;
+    }
+    launchMutation.mutate(app.id);
+  }
+
   return (
     <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
       {apps.map((app) => {
-        const busy = launchingId === app.appId;
+        const busy = launchingId === app.id;
         return (
           <button
-            key={app.appId}
+            key={`${app.kind}-${app.id}`}
             type="button"
             disabled={launchMutation.isPending}
-            onClick={() => launchMutation.mutate(app.appId)}
+            onClick={() => openItem(app)}
             className={cn(
               "group flex cursor-pointer flex-col items-center gap-2 rounded-xl border bg-card p-4 text-center shadow-sm transition-all duration-200 ease-out",
               "hover:-translate-y-1 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10",

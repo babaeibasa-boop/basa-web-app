@@ -70,13 +70,25 @@ export interface PaginatedResult<T> {
   limit: number;
 }
 
-export interface ReftekApp {
-  appId: string;
+export interface Category {
+  id: string;
   name: string;
-  category: string;
+  slug: string;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ReftekCatalogItem {
+  kind: "app" | "voucher";
+  id: string;
+  name: string;
   icon: string;
   description: string | null;
-  linkType: "static" | "dynamic";
+  categorySlug: string;
+  categoryName: string;
+  linkType?: "static" | "dynamic";
+  platformSlug?: string;
 }
 
 export interface VoucherPlatform {
@@ -85,6 +97,7 @@ export interface VoucherPlatform {
   slug: string;
   logoUrl: string;
   hasApiKey?: boolean;
+  category?: Category;
   createdAt?: string;
   updatedAt?: string;
 }

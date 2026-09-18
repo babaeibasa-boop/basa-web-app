@@ -3,9 +3,13 @@ import { VoucherPurchaseStatus, VoucherStatus } from "@prisma/client";
 
 const { prisma, walletService } = vi.hoisted(() => {
   const prisma = {
+    category: {
+      findUnique: vi.fn(),
+    },
     voucherPlatform: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      create: vi.fn(),
     },
     voucher: {
       findFirst: vi.fn(),
@@ -52,6 +56,7 @@ vi.mock("../lib/prisma.js", () => ({ prisma }));
 vi.mock("../services/wallet.service.js", () => ({ walletService }));
 
 import {
+  createPlatform,
   createPurchase,
   createVoucher,
   getPlatformOffers,
@@ -65,12 +70,20 @@ import {
 import { AppError } from "../lib/errors.js";
 
 const future = new Date(Date.now() + 86_400_000);
+const category = {
+  id: "cat-entertainment",
+  name: "سرگرمی، فیلم و سریال",
+  slug: "entertainment",
+  sortOrder: 6,
+};
 const platform = {
   id: "p1",
   name: "Spotify",
   slug: "spotify",
   logoUrl: "/spotify.png",
   encryptedApiKey: "enc:platform-pwd",
+  categoryId: category.id,
+  category,
 };
 
 function voucherRecord(overrides: Record<string, unknown> = {}) {
@@ -216,8 +229,25 @@ describe("getUserPurchases", () => {
     ]);
 
     const result = await getUserPurchases("user-1");
+    expect(prisma.voucherPurchase.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: "user-1" },
+      }),
+    );
     expect(result[0]?.voucher.code).toBeNull();
     expect(result[1]?.voucher.code).toBe("SECRET-CODE");
+  });
+
+  it("filters purchases by platform slug", async () => {
+    prisma.voucherPurchase.findMany.mockResolvedValue([]);
+
+    await getUserPurchases("user-1", "spotify");
+
+    expect(prisma.voucherPurchase.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: "user-1", voucher: { platform: { slug: "spotify" } } },
+      }),
+    );
   });
 });
 
@@ -297,7 +327,7 @@ describe("verifyVoucherPayment", () => {
     const result = await verifyVoucherPayment("track-1", "token-1", "Done");
 
     expect(walletService.settlePayment).toHaveBeenCalledWith("track-1", "token-1", "platform-pwd");
-    expect(result).toEqual({ success: true, type: "voucher", purchaseId: "pur1" });
+    expect(result).toEqual({ success: true, type: "voucher", purchaseId: "pur1", platformSlug: "spotify" });
   });
 
   it("releases stock when the user cancels payment", async () => {
@@ -453,5 +483,55 @@ describe("release without expiry", () => {
       where: { id: "v1", status: VoucherStatus.RESERVED },
       data: { status: VoucherStatus.AVAILABLE },
     });
+  });
+});
+
+describe("createPlatform", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prisma.category.findUnique.mockResolvedValue(category);
+  });
+
+  it("requires a valid category", async () => {
+    prisma.category.findUnique.mockResolvedValue(null);
+
+    await expect(
+      createPlatform({
+        name: "Spotify",
+        slug: "spotify",
+        logoUrl: "/spotify.png",
+        apiKey: "pwd",
+        categoryId: "missing",
+      }),
+    ).rejects.toMatchObject({ message: "دسته‌بندی یافت نشد", statusCode: 404 });
+  });
+
+  it("creates a platform in the selected category", async () => {
+    const createdAt = new Date();
+    prisma.voucherPlatform.create.mockResolvedValue({
+      ...platform,
+      createdAt,
+      updatedAt: createdAt,
+    });
+
+    const result = await createPlatform({
+      name: "Spotify",
+      slug: "spotify",
+      logoUrl: "/spotify.png",
+      apiKey: "pwd",
+      categoryId: category.id,
+    });
+
+    expect(prisma.voucherPlatform.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          categoryId: category.id,
+          slug: "spotify",
+          encryptedApiKey: "enc:pwd",
+        }),
+        include: { category: true },
+      }),
+    );
+    expect(result.category).toMatchObject({ id: category.id, slug: "entertainment" });
   });
 });

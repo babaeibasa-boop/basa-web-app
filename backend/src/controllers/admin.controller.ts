@@ -28,6 +28,12 @@ import {
   importVouchers,
   listVoucherSales,
 } from "../services/voucher.service.js";
+import {
+  listCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from "../services/category.service.js";
 import { getAdminSettings, updateAdminSettings } from "../services/settings.service.js";
 import { sendSuccess } from "../lib/response.js";
 import { DURATION_MONTHS_PATTERN, parseDigitString, parseDurationMonths } from "../lib/digits.js";
@@ -57,7 +63,7 @@ const slugSchema = z.preprocess(
   z
     .string()
     .min(1)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "شناسه پلتفرم فقط می‌تواند شامل حروف انگلیسی کوچک، عدد و خط تیره باشد"),
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "شناسه فقط می‌تواند شامل حروف انگلیسی کوچک، عدد و خط تیره باشد"),
 );
 
 const createPlatformSchema = z.object({
@@ -65,6 +71,7 @@ const createPlatformSchema = z.object({
   slug: slugSchema,
   logoUrl: z.string().min(1),
   apiKey: z.string().min(1),
+  categoryId: z.string().min(1),
 });
 
 const updatePlatformSchema = z.object({
@@ -72,6 +79,19 @@ const updatePlatformSchema = z.object({
   slug: slugSchema.optional(),
   logoUrl: z.string().min(1).optional(),
   apiKey: z.string().min(1).optional(),
+  categoryId: z.string().min(1).optional(),
+});
+
+const createCategorySchema = z.object({
+  name: z.string().min(1),
+  slug: slugSchema,
+  sortOrder: z.number().int().optional(),
+});
+
+const updateCategorySchema = z.object({
+  name: z.string().min(1).optional(),
+  slug: slugSchema.optional(),
+  sortOrder: z.number().int().optional(),
 });
 
 const createVoucherSchema = z.object({
@@ -311,6 +331,44 @@ export async function voucherSales(req: Request, res: Response, next: NextFuncti
     const limit = parseInt(req.query.limit as string) || 20;
     const result = await listVoucherSales({ search, page, limit });
     sendSuccess(res, result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function categories(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const data = await listCategories();
+    sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function addCategory(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = createCategorySchema.parse(req.body);
+    const category = await createCategory(input);
+    sendSuccess(res, category, "دسته‌بندی اضافه شد", 201);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function patchCategory(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = updateCategorySchema.parse(req.body);
+    const category = await updateCategory(String(req.params.id), input);
+    sendSuccess(res, category, "دسته‌بندی بروزرسانی شد");
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function removeCategory(req: Request, res: Response, next: NextFunction) {
+  try {
+    await deleteCategory(String(req.params.id));
+    sendSuccess(res, null, "دسته‌بندی حذف شد");
   } catch (error) {
     next(error);
   }

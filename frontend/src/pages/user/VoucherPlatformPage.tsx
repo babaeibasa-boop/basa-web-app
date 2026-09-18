@@ -67,7 +67,18 @@ export default function VoucherPlatformPage() {
 
   return (
     <VoucherLayout>
-      <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate("/voucher")}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mb-4"
+        onClick={() =>
+          navigate(
+            platform.category?.slug
+              ? `/reftek/category/${encodeURIComponent(platform.category.slug)}`
+              : "/reftek",
+          )
+        }
+      >
         بازگشت
       </Button>
 
@@ -110,10 +121,10 @@ export default function VoucherPlatformPage() {
       <ConfirmDialog
         open={!!selected}
         onOpenChange={(open) => !open && setSelected(null)}
-        title="تأیید خرید واچر"
+        title="تأیید خرید ووچر"
         description={
           selected
-            ? `آیا از پرداخت ${formatPrice(selected.amount)} برای واچر ${formatDurationMonths(selected.duration)} ${platform.name} اطمینان دارید؟`
+            ? `آیا از پرداخت ${formatPrice(selected.amount)} برای ووچر ${formatDurationMonths(selected.duration)} ${platform.name} اطمینان دارید؟`
             : ""
         }
         onConfirm={() => {

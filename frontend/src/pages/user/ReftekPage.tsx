@@ -56,13 +56,13 @@ export default function ReftekPage() {
     return apps.filter(
       (app) =>
         app.name.toLowerCase().includes(q) ||
-        app.category.toLowerCase().includes(q) ||
+        app.categoryName.toLowerCase().includes(q) ||
         (app.description ?? "").toLowerCase().includes(q),
     );
   }, [apps, query]);
 
   const groups = useMemo(() => groupByCategory(filtered), [filtered]);
-  const defaultOpen = useMemo(() => groups.map((g) => g.category), [groups]);
+  const defaultOpen = useMemo(() => groups.map((g) => g.categorySlug), [groups]);
 
   function setView(next: ReftekView) {
     if (next === "apps") {
@@ -181,14 +181,14 @@ export default function ReftekPage() {
           defaultValue={defaultOpen}
           className="overflow-hidden rounded-2xl border bg-card shadow-sm"
         >
-          {groups.map(({ category, apps: categoryApps }) => (
-            <AccordionItem key={category} value={category} className="px-4">
+          {groups.map(({ categorySlug, categoryName, apps: categoryApps }) => (
+            <AccordionItem key={categorySlug} value={categorySlug} className="px-4">
               <AccordionTrigger className="hover:no-underline">
                 <div className="flex min-w-0 flex-1 items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <FolderOpen className="h-4 w-4" />
                   </span>
-                  <span className="truncate text-base font-semibold">{category}</span>
+                  <span className="truncate text-base font-semibold">{categoryName}</span>
                   <Badge variant="secondary" className="shrink-0">
                     {categoryApps.length.toLocaleString("fa-IR")} برنامه
                   </Badge>
@@ -204,10 +204,10 @@ export default function ReftekPage() {
 
       {!isLoading && !error && groups.length > 0 && view === "categories" && (
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-          {groups.map(({ category, apps: categoryApps }) => (
+          {groups.map(({ categorySlug, categoryName, apps: categoryApps }) => (
             <Link
-              key={category}
-              to={`/reftek/category/${encodeURIComponent(category)}`}
+              key={categorySlug}
+              to={`/reftek/category/${encodeURIComponent(categorySlug)}`}
               className={cn(
                 "flex items-center gap-3 border-b px-4 py-3.5 transition-colors last:border-b-0",
                 "hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
@@ -216,7 +216,7 @@ export default function ReftekPage() {
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <FolderOpen className="h-4 w-4" />
               </span>
-              <span className="min-w-0 flex-1 truncate text-base font-semibold">{category}</span>
+              <span className="min-w-0 flex-1 truncate text-base font-semibold">{categoryName}</span>
               <Badge variant="secondary" className="shrink-0">
                 {categoryApps.length.toLocaleString("fa-IR")} برنامه
               </Badge>

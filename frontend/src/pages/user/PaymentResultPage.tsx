@@ -12,6 +12,7 @@ export default function PaymentResultPage() {
   const [status, setStatus] = useState<"loading" | "success" | "failed">("loading");
   const [orderId, setOrderId] = useState<string>("");
   const [resultType, setResultType] = useState<"order" | "voucher">("order");
+  const [platformSlug, setPlatformSlug] = useState<string | null>(searchParams.get("platform"));
   const verifyStarted = useRef(false);
 
   useEffect(() => {
@@ -33,11 +34,13 @@ export default function PaymentResultPage() {
         setStatus(res.data.success ? "success" : "failed");
         setResultType(res.data.type === "voucher" ? "voucher" : "order");
         setOrderId(res.data.orderId ?? "");
+        if (res.data.platformSlug) setPlatformSlug(res.data.platformSlug);
       })
       .catch(() => setStatus("failed"));
   }, [searchParams]);
 
   const isVoucher = resultType === "voucher";
+  const voucherPurchasesPath = platformSlug ? `/voucher/${platformSlug}/purchases` : "/reftek";
 
   if (status === "loading") {
     return (
@@ -57,12 +60,12 @@ export default function PaymentResultPage() {
               <h2 className="mt-4 text-xl font-bold">پرداخت موفق</h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 {isVoucher
-                  ? "واچر شما با موفقیت خریداری شد. می‌توانید کد را در پنل خریدهای خود مشاهده کنید."
+                  ? "ووچر شما با موفقیت خریداری شد. می‌توانید کد را در پنل خریدهای خود مشاهده کنید."
                   : "سفارش شما با موفقیت ثبت شد. لطفاً منتظر بمانید تا تیم ما اشتراک شما را خریداری کند. پشتیبانی ممکن است با شما تماس بگیرد و کد تأیید ارسال‌شده به ایمیل شما را درخواست کند. در صورت عدم دسترسی، سفارش شما ممکن است با تأخیر انجام شود."}
               </p>
               {isVoucher ? (
-                <Link to="/voucher/purchases">
-                  <Button className="mt-6">مشاهده واچر</Button>
+                <Link to={voucherPurchasesPath}>
+                  <Button className="mt-6">مشاهده ووچر</Button>
                 </Link>
               ) : (
                 orderId && (
@@ -82,9 +85,9 @@ export default function PaymentResultPage() {
               <Button
                 className="mt-6"
                 variant="outline"
-                onClick={() => navigate(isVoucher ? "/voucher/purchases" : "/orders")}
+                onClick={() => navigate(isVoucher ? voucherPurchasesPath : "/orders")}
               >
-                {isVoucher ? "بازگشت به واچرها" : "بازگشت به سفارش‌ها"}
+                {isVoucher ? "بازگشت به ووچرها" : "بازگشت به سفارش‌ها"}
               </Button>
             </>
           )}

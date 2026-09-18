@@ -12,7 +12,6 @@ import CreateOrderPage from "@/pages/user/CreateOrderPage";
 import PaymentResultPage from "@/pages/user/PaymentResultPage";
 import ReftekPage from "@/pages/user/ReftekPage";
 import ReftekCategoryPage from "@/pages/user/ReftekCategoryPage";
-import VoucherPage from "@/pages/user/VoucherPage";
 import VoucherPlatformPage from "@/pages/user/VoucherPlatformPage";
 import VoucherPurchasesPage from "@/pages/user/VoucherPurchasesPage";
 
@@ -23,6 +22,7 @@ const AdminOrderDetailPage = lazy(() => import("@/pages/admin/AdminOrderDetailPa
 const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage"));
 const AdminSettingsPage = lazy(() => import("@/pages/admin/AdminSettingsPage"));
 const AdminVoucherPlatformsPage = lazy(() => import("@/pages/admin/AdminVoucherPlatformsPage"));
+const AdminCategoriesPage = lazy(() => import("@/pages/admin/AdminCategoriesPage"));
 const AdminVouchersPage = lazy(() => import("@/pages/admin/AdminVouchersPage"));
 const AdminVoucherSalesPage = lazy(() => import("@/pages/admin/AdminVoucherSalesPage"));
 
@@ -80,8 +80,9 @@ export default function App() {
                   <Route path="/" element={<SplashPage />} />
                   <Route path="/reftek" element={<UserGuard><ReftekPage /></UserGuard>} />
                   <Route path="/reftek/category/:category" element={<UserGuard><ReftekCategoryPage /></UserGuard>} />
-                  <Route path="/voucher" element={<UserGuard><VoucherPage /></UserGuard>} />
-                  <Route path="/voucher/purchases" element={<UserGuard><VoucherPurchasesPage /></UserGuard>} />
+                  <Route path="/voucher" element={<Navigate to="/reftek" replace />} />
+                  <Route path="/voucher/purchases" element={<Navigate to="/reftek" replace />} />
+                  <Route path="/voucher/:slug/purchases" element={<UserGuard><VoucherPurchasesPage /></UserGuard>} />
                   <Route path="/voucher/:slug" element={<UserGuard><VoucherPlatformPage /></UserGuard>} />
                   <Route path="/payment/result" element={<UserGuard><PaymentResultPage /></UserGuard>} />
                   {!isProduction && (
@@ -95,6 +96,7 @@ export default function App() {
                       <Route path="/admin/orders/:id" element={<AdminGuard><AdminOrderDetailPage /></AdminGuard>} />
                       <Route path="/admin/users" element={<AdminGuard><AdminUsersPage /></AdminGuard>} />
                       <Route path="/admin/settings" element={<AdminGuard><AdminSettingsPage /></AdminGuard>} />
+                      <Route path="/admin/categories" element={<AdminGuard><AdminCategoriesPage /></AdminGuard>} />
                       <Route path="/admin/voucher-platforms" element={<AdminGuard><AdminVoucherPlatformsPage /></AdminGuard>} />
                       <Route path="/admin/vouchers" element={<AdminGuard><AdminVouchersPage /></AdminGuard>} />
                       <Route path="/admin/voucher-sales" element={<AdminGuard><AdminVoucherSalesPage /></AdminGuard>} />

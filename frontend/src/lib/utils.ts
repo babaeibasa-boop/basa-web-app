@@ -84,7 +84,7 @@ const ALLOWED_REDIRECT_PREFIXES = ["/voucher", "/reftek", "/orders", "/payment"]
 
 export function voucherPlatformSlugFromPath(pathname: string): string | null {
   const path = pathname.split("?")[0] ?? pathname;
-  const match = path.match(/^\/voucher\/([^/]+)$/);
+  const match = path.match(/^\/voucher\/([^/]+)(?:\/purchases)?$/);
   if (!match?.[1] || match[1] === "purchases") return null;
   return match[1];
 }

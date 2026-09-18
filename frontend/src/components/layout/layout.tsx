@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { Moon, Sun, Plus, Package, AppWindow, User, Ticket } from "lucide-react";
 import { useAuth, useAdminAuth, useTheme } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -96,12 +96,23 @@ export function VoucherLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const { slug } = useParams<{ slug: string }>();
   const displayName = user ? `${user.name} ${user.family}`.trim() : null;
 
-  const navItems = [
-    { to: "/voucher", label: "فروشگاه", match: (path: string) => path === "/voucher" || (path.startsWith("/voucher/") && path !== "/voucher/purchases") },
-    { to: "/voucher/purchases", label: "خریدهای من", match: (path: string) => path === "/voucher/purchases" },
-  ];
+  const navItems = slug
+    ? [
+        {
+          to: `/voucher/${slug}`,
+          label: "ووچرها",
+          match: (path: string) => path === `/voucher/${slug}`,
+        },
+        {
+          to: `/voucher/${slug}/purchases`,
+          label: "خریدهای من",
+          match: (path: string) => path === `/voucher/${slug}/purchases`,
+        },
+      ]
+    : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,22 +136,24 @@ export function VoucherLayout({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
         </div>
-        <nav className="mx-auto flex max-w-3xl gap-1 px-4 pb-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors",
-                item.match(location.pathname)
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent",
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        {navItems.length > 0 && (
+          <nav className="mx-auto flex max-w-3xl gap-1 px-4 pb-2">
+            {navItems.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors",
+                  item.match(location.pathname)
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent",
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        )}
       </header>
       <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
     </div>
@@ -156,9 +169,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { to: "/admin", label: "داشبورد" },
     { to: "/admin/orders", label: "سفارش‌ها" },
     { to: "/admin/users", label: "کاربران" },
-    { to: "/admin/voucher-platforms", label: "پلتفرم واچر" },
-    { to: "/admin/vouchers", label: "واچرها" },
-    { to: "/admin/voucher-sales", label: "فروش واچر" },
+    { to: "/admin/categories", label: "دسته‌بندی‌ها" },
+    { to: "/admin/voucher-platforms", label: "پلتفرم ووچر" },
+    { to: "/admin/vouchers", label: "ووچرها" },
+    { to: "/admin/voucher-sales", label: "فروش ووچر" },
     { to: "/admin/settings", label: "تنظیمات" },
   ];
 

@@ -1,23 +1,19 @@
 import axios from "axios";
-import { AppError } from "../lib/errors.js";
-import { prisma } from "../lib/prisma.js";
 import { REFTEK_APPS, type ReftekAppDefinition } from "../data/reftek-apps.js";
+import { AppError } from "../lib/errors.js";
+import { logger } from "../lib/logger.js";
+import { prisma } from "../lib/prisma.js";
 
-export interface ReftekAppPublic {
-  appId: string;
+export interface ReftekCatalogItem {
+  kind: "app" | "voucher";
+  id: string;
   name: string;
-  category: string;
   icon: string;
   description: string | null;
-  linkType: "static" | "dynamic";
-}
-
-function sortApps(apps: ReftekAppDefinition[]): ReftekAppDefinition[] {
-  return [...apps].sort((a, b) => {
-    const categoryCmp = a.category.localeCompare(b.category, "fa");
-    if (categoryCmp !== 0) return categoryCmp;
-    return (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name, "fa");
-  });
+  categorySlug: string;
+  categoryName: string;
+  linkType?: "static" | "dynamic";
+  platformSlug?: string;
 }
 
 function findApp(appId: string): ReftekAppDefinition {
@@ -28,19 +24,59 @@ function findApp(appId: string): ReftekAppDefinition {
   return app;
 }
 
-function toPublic(app: ReftekAppDefinition): ReftekAppPublic {
-  return {
-    appId: app.appId,
-    name: app.name,
-    category: app.category,
-    icon: app.icon,
-    description: app.description ?? null,
-    linkType: app.linkType,
-  };
-}
+export async function listReftekApps(): Promise<ReftekCatalogItem[]> {
+  const categories = await prisma.category.findMany({
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    include: {
+      voucherPlatforms: { orderBy: { name: "asc" } },
+    },
+  });
+  const bySlug = new Map(categories.map((category) => [category.slug, category]));
 
-export function listReftekApps(): ReftekAppPublic[] {
-  return sortApps(REFTEK_APPS).map(toPublic);
+  for (const app of REFTEK_APPS) {
+    if (!bySlug.has(app.categorySlug)) {
+      logger.warn(
+        { category: "reftek", appId: app.appId, categorySlug: app.categorySlug },
+        "Skipped RefTek app with unknown category slug",
+      );
+    }
+  }
+
+  const items: ReftekCatalogItem[] = [];
+
+  for (const category of categories) {
+    const apps = REFTEK_APPS.filter((app) => app.categorySlug === category.slug).sort(
+      (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name, "fa"),
+    );
+
+    for (const app of apps) {
+      items.push({
+        kind: "app",
+        id: app.appId,
+        name: app.name,
+        icon: app.icon,
+        description: app.description ?? null,
+        categorySlug: category.slug,
+        categoryName: category.name,
+        linkType: app.linkType,
+      });
+    }
+
+    for (const platform of category.voucherPlatforms) {
+      items.push({
+        kind: "voucher",
+        id: platform.id,
+        name: platform.name,
+        icon: platform.logoUrl,
+        description: null,
+        categorySlug: category.slug,
+        categoryName: category.name,
+        platformSlug: platform.slug,
+      });
+    }
+  }
+
+  return items;
 }
 
 function extractLaunchUrl(payload: unknown): string | null {

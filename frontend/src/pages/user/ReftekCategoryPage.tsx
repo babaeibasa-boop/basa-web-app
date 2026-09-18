@@ -12,7 +12,7 @@ import { ReftekAppGrid } from "./reftek-shared";
 export default function ReftekCategoryPage() {
   const navigate = useNavigate();
   const { category: categoryParam } = useParams<{ category: string }>();
-  const category = categoryParam ? decodeURIComponent(categoryParam) : "";
+  const categorySlug = categoryParam ? decodeURIComponent(categoryParam) : "";
   const [query, setQuery] = useState("");
 
   const { data, isLoading, error } = useQuery({
@@ -22,8 +22,9 @@ export default function ReftekCategoryPage() {
 
   const apps = useMemo(() => {
     const all = data?.data ?? [];
-    return all.filter((app) => app.category === category);
-  }, [data?.data, category]);
+    return all.filter((app) => app.categorySlug === categorySlug);
+  }, [data?.data, categorySlug]);
+  const categoryName = apps[0]?.categoryName ?? categorySlug;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -52,7 +53,7 @@ export default function ReftekCategoryPage() {
           <FolderOpen className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <h2 className="truncate text-xl font-bold tracking-tight">{category || "دسته‌بندی"}</h2>
+          <h2 className="truncate text-xl font-bold tracking-tight">{categoryName || "دسته‌بندی"}</h2>
           <p className="text-sm text-muted-foreground">
             {apps.length > 0
               ? `${apps.length.toLocaleString("fa-IR")} برنامه در این دسته`

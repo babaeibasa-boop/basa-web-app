@@ -3,7 +3,6 @@ import { z } from "zod";
 import { DURATION_MONTHS_PATTERN, parseDigitString, parseDurationMonths } from "../lib/digits.js";
 import { sendSuccess } from "../lib/response.js";
 import {
-  listPlatforms,
   getPlatformOffers,
   createPurchase,
   initiateVoucherPayment,
@@ -21,15 +20,6 @@ const createPurchaseSchema = z.object({
     z.string().regex(DURATION_MONTHS_PATTERN, "مدت باید تعداد ماه و فقط عدد باشد"),
   ),
 });
-
-export async function listVoucherPlatforms(_req: Request, res: Response, next: NextFunction) {
-  try {
-    const platforms = await listPlatforms();
-    sendSuccess(res, platforms);
-  } catch (error) {
-    next(error);
-  }
-}
 
 export async function getVoucherPlatform(req: Request, res: Response, next: NextFunction) {
   try {
@@ -61,7 +51,11 @@ export async function payVoucherPurchase(req: Request, res: Response, next: Next
 
 export async function listUserVoucherPurchases(req: Request, res: Response, next: NextFunction) {
   try {
-    const purchases = await getUserPurchases(req.user!.userId);
+    const platformSlug =
+      typeof req.query.platformSlug === "string" && req.query.platformSlug.trim()
+        ? req.query.platformSlug.trim()
+        : undefined;
+    const purchases = await getUserPurchases(req.user!.userId, platformSlug);
     sendSuccess(res, purchases);
   } catch (error) {
     next(error);

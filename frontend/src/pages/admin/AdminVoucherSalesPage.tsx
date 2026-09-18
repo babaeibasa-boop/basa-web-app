@@ -24,7 +24,7 @@ export default function AdminVoucherSalesPage() {
 
   return (
     <AdminLayout>
-      <h2 className="mb-4 text-xl font-bold">واچرهای فروخته‌شده</h2>
+      <h2 className="mb-4 text-xl font-bold">ووچرهای فروخته‌شده</h2>
 
       <div className="mb-4">
         <Input

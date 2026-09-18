@@ -25,7 +25,7 @@ export default function AdminSettingsPage() {
     mutationFn: (hideVouchersExpiringSoon: boolean) => adminApi.updateSettings({ hideVouchersExpiringSoon }),
     onSuccess: (res) => {
       queryClient.setQueryData(["admin-settings"], res);
-      toast("تنظیمات واچر ذخیره شد");
+      toast("تنظیمات ووچر ذخیره شد");
     },
     onError: (err: Error) => toast(err.message, "destructive"),
   });
@@ -62,7 +62,7 @@ export default function AdminSettingsPage() {
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-base">تنظیمات واچر</CardTitle>
+          <CardTitle className="text-base">تنظیمات ووچر</CardTitle>
         </CardHeader>
         <CardContent>
           {settingsQuery.isLoading ? (
@@ -77,9 +77,9 @@ export default function AdminSettingsPage() {
                 onChange={(event) => settingsMutation.mutate(event.target.checked)}
               />
               <span>
-                <span className="font-medium">مخفی کردن واچرهای نزدیک به انقضا</span>
+                <span className="font-medium">مخفی کردن ووچرهای نزدیک به انقضا</span>
                 <span className="mt-1 block text-muted-foreground">
-                  اگر فعال باشد، واچرهایی که کمتر از دو روز تا انقضایشان مانده برای کاربران نمایش داده نمی‌شوند. واچرهای بدون تاریخ انقضا همیشه نمایش داده می‌شوند.
+                  اگر فعال باشد، ووچرهایی که کمتر از دو روز تا انقضایشان مانده برای کاربران نمایش داده نمی‌شوند. ووچرهای بدون تاریخ انقضا همیشه نمایش داده می‌شوند.
                 </span>
               </span>
             </label>

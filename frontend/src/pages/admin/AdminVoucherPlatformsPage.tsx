@@ -11,7 +11,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import type { VoucherPlatform } from "@/types";
 
-const emptyForm = { name: "", slug: "", logoUrl: "", apiKey: "" };
+const emptyForm = { name: "", slug: "", logoUrl: "", apiKey: "", categoryId: "" };
 
 export default function AdminVoucherPlatformsPage() {
   const queryClient = useQueryClient();
@@ -23,6 +23,11 @@ export default function AdminVoucherPlatformsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-voucher-platforms"],
     queryFn: () => adminApi.getVoucherPlatforms(),
+  });
+
+  const categoriesQuery = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: () => adminApi.getCategories(),
   });
 
   const createMutation = useMutation({
@@ -41,6 +46,7 @@ export default function AdminVoucherPlatformsPage() {
         name: form.name,
         slug: form.slug,
         logoUrl: form.logoUrl,
+        categoryId: form.categoryId,
         ...(form.apiKey ? { apiKey: form.apiKey } : {}),
       }),
     onSuccess: () => {
@@ -62,8 +68,9 @@ export default function AdminVoucherPlatformsPage() {
   });
 
   const platforms = data?.data ?? [];
+  const categories = categoriesQuery.data?.data ?? [];
   const isEditing = !!editing;
-  const canSubmit = form.name && form.slug && form.logoUrl && (isEditing || form.apiKey);
+  const canSubmit = form.name && form.slug && form.logoUrl && form.categoryId && (isEditing || form.apiKey);
 
   function startEdit(platform: VoucherPlatform) {
     setEditing(platform);
@@ -72,6 +79,7 @@ export default function AdminVoucherPlatformsPage() {
       slug: platform.slug,
       logoUrl: platform.logoUrl,
       apiKey: "",
+      categoryId: platform.category?.id ?? "",
     });
   }
 
@@ -82,7 +90,7 @@ export default function AdminVoucherPlatformsPage() {
 
   return (
     <AdminLayout>
-      <h2 className="mb-6 text-xl font-bold">پلتفرم‌های واچر</h2>
+      <h2 className="mb-6 text-xl font-bold">پلتفرم‌های ووچر</h2>
 
       <Card className="mb-6">
         <CardHeader>
@@ -103,6 +111,22 @@ export default function AdminVoucherPlatformsPage() {
                 value={form.slug}
                 onChange={(e) => setForm({ ...form, slug: e.target.value })}
               />
+            </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="categoryId">دسته‌بندی</Label>
+              <select
+                id="categoryId"
+                value={form.categoryId}
+                onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                className="h-10 w-full rounded-lg border bg-background px-3 text-sm"
+              >
+                <option value="">انتخاب دسته‌بندی</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="sm:col-span-2">
               <Label htmlFor="logoUrl">آدرس لوگو</Label>
@@ -152,8 +176,10 @@ export default function AdminVoucherPlatformsPage() {
               <img src={platform.logoUrl} alt="" className="h-10 w-10 rounded object-contain" />
               <div className="min-w-0">
                 <p className="truncate font-medium">{platform.name}</p>
-                <p className="truncate text-xs text-muted-foreground" dir="ltr">
-                  /voucher/{platform.slug}
+                <p className="truncate text-xs text-muted-foreground">
+                  {platform.category?.name ?? "بدون دسته"}
+                  <span className="mx-1">·</span>
+                  <span dir="ltr">/voucher/{platform.slug}</span>
                 </p>
               </div>
             </div>

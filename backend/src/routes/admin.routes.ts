@@ -22,6 +22,10 @@ import {
   voucherSales,
   settings,
   patchSettings,
+  categories,
+  addCategory,
+  patchCategory,
+  removeCategory,
 } from "../controllers/admin.controller.js";
 import { authenticateAdmin } from "../middleware/auth.js";
 
@@ -44,6 +48,10 @@ router.get("/users", authenticateAdmin, users);
 router.get("/phones", authenticateAdmin, phones);
 router.post("/phones", authenticateAdmin, addPhone);
 router.delete("/phones/:id", authenticateAdmin, deletePhone);
+router.get("/categories", authenticateAdmin, categories);
+router.post("/categories", authenticateAdmin, addCategory);
+router.patch("/categories/:id", authenticateAdmin, patchCategory);
+router.delete("/categories/:id", authenticateAdmin, removeCategory);
 router.get("/voucher-platforms", authenticateAdmin, voucherPlatforms);
 router.post("/voucher-platforms", authenticateAdmin, addVoucherPlatform);
 router.patch("/voucher-platforms/:id", authenticateAdmin, patchVoucherPlatform);

@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { authenticateUser } from "../middleware/auth.js";
 import {
-  listVoucherPlatforms,
   getVoucherPlatform,
   createVoucherPurchase,
   payVoucherPurchase,
@@ -10,7 +9,6 @@ import {
 
 const router = Router();
 
-router.get("/platforms", authenticateUser, listVoucherPlatforms);
 router.get("/platforms/:slug", authenticateUser, getVoucherPlatform);
 router.get("/purchases", authenticateUser, listUserVoucherPurchases);
 router.post("/purchases", authenticateUser, createVoucherPurchase);

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
 import { Copy } from "lucide-react";
 import { voucherApi } from "@/api";
 import { VoucherLayout } from "@/components/layout/layout";
@@ -20,12 +21,14 @@ function statusVariant(status: string) {
 }
 
 export default function VoucherPurchasesPage() {
+  const { slug } = useParams<{ slug: string }>();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["voucher-purchases"],
-    queryFn: () => voucherApi.getPurchases(),
+    queryKey: ["voucher-purchases", slug],
+    queryFn: () => voucherApi.getPurchases(slug),
+    enabled: !!slug,
   });
 
   const payMutation = useMutation({
@@ -35,7 +38,7 @@ export default function VoucherPurchasesPage() {
     },
     onError: (err: Error) => {
       toast(err.message, "destructive");
-      queryClient.invalidateQueries({ queryKey: ["voucher-purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["voucher-purchases", slug] });
     },
   });
 
@@ -65,7 +68,10 @@ export default function VoucherPurchasesPage() {
       {error && <EmptyState title="خطا در بارگذاری خریدها" description={(error as Error).message} />}
 
       {!isLoading && !error && purchases.length === 0 && (
-        <EmptyState title="واچری خریداری نشده" description="از فروشگاه واچر، پلتفرم مورد نظر را انتخاب کنید" />
+        <EmptyState
+          title="واچری خریداری نشده"
+          description="از صفحه ووچرهای این پلتفرم، مورد نظر خود را انتخاب کنید"
+        />
       )}
 
       <div className="space-y-3">

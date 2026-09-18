@@ -77,7 +77,7 @@ export default function AdminVouchersPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-vouchers"] });
-      toast("واچر اضافه شد");
+      toast("ووچر اضافه شد");
       setForm({ platformId: form.platformId, amount: "", duration: "", expiresAt: "", code: "" });
     },
     onError: (err: Error) => toast(err.message, "destructive"),
@@ -95,10 +95,10 @@ export default function AdminVouchersPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-vouchers"] });
       setImportResult(res.data);
       if (res.data.failed === 0) {
-        toast(`${res.data.created.toLocaleString("fa-IR")} واچر وارد شد`);
+        toast(`${res.data.created.toLocaleString("fa-IR")} ووچر وارد شد`);
       } else {
         toast(
-          `${res.data.created.toLocaleString("fa-IR")} واچر وارد شد، ${res.data.failed.toLocaleString("fa-IR")} ردیف نامعتبر`,
+          `${res.data.created.toLocaleString("fa-IR")} ووچر وارد شد، ${res.data.failed.toLocaleString("fa-IR")} ردیف نامعتبر`,
           res.data.created > 0 ? "default" : "destructive",
         );
       }
@@ -115,11 +115,11 @@ export default function AdminVouchersPage() {
 
   return (
     <AdminLayout>
-      <h2 className="mb-6 text-xl font-bold">موجودی واچر</h2>
+      <h2 className="mb-6 text-xl font-bold">موجودی ووچر</h2>
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-base">افزودن واچر</CardTitle>
+          <CardTitle className="text-base">افزودن ووچر</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -176,7 +176,7 @@ export default function AdminVouchersPage() {
               </div>
             </div>
             <div className="sm:col-span-2">
-              <Label htmlFor="code">کد واچر</Label>
+              <Label htmlFor="code">کد ووچر</Label>
               <Input
                 id="code"
                 dir="ltr"
@@ -292,7 +292,7 @@ export default function AdminVouchersPage() {
         </div>
       )}
 
-      {!isLoading && vouchers.length === 0 && <EmptyState title="واچری یافت نشد" />}
+      {!isLoading && vouchers.length === 0 && <EmptyState title="ووچری یافت نشد" />}
 
       <div className="space-y-3">
         {vouchers.map((voucher) => (

@@ -6,13 +6,14 @@
  *   at `url`, `data.url`, or `data.launch_url`
  *
  * Edit this file to add/remove apps. `appId` must be unique.
+ * `categorySlug` must match a row in the `categories` table.
  */
 export type ReftekLinkType = "static" | "dynamic";
 
 export interface ReftekAppDefinition {
   appId: string;
   name: string;
-  category: string;
+  categorySlug: string;
   /**
    * Icon shown on the frontend:
    * - Lucide name (e.g. "Users") — must exist in ReftekPage ICON_MAP
@@ -33,7 +34,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "hooshan",
     name: "هوشان",
-    category: "هوش مصنوعی",
+    categorySlug: "ai",
     icon: "/reftek-icons/hooshan.webp",
     sortOrder: 1,
     linkType: "static",
@@ -42,7 +43,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "game-center",
     name: "گیم سنتر",
-    category: "اپلیکیشن، گیم و خدمات موبایل",
+    categorySlug: "mobile-apps-games",
     icon: "/reftek-icons/game-center.webp",
     sortOrder: 1,
     linkType: "static",
@@ -51,7 +52,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "limoomi",
     name: "لیمومی",
-    category: "ورزش، سلامت جسم و ذهن",
+    categorySlug: "health-sports",
     icon: "/reftek-icons/limoomi.png",
     sortOrder: 1,
     linkType: "static",
@@ -60,7 +61,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "fitamin",
     name: "فیتامین",
-    category: "ورزش، سلامت جسم و ذهن",
+    categorySlug: "health-sports",
     icon: "/reftek-icons/fitamin.svg",
     sortOrder: 2,
     linkType: "static",
@@ -69,7 +70,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "aramia",
     name: "آرامیا",
-    category: "ورزش، سلامت جسم و ذهن",
+    categorySlug: "health-sports",
     icon: "/reftek-icons/aramia.png",
     sortOrder: 3,
     linkType: "static",
@@ -78,7 +79,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "zaban-master",
     name: "زبان مستر",
-    category: "آموزش و مهارت آموزی",
+    categorySlug: "education",
     icon: "/reftek-icons/zaban-master.png",
     sortOrder: 1,
     linkType: "static",
@@ -87,7 +88,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "fixa",
     name: "فیکسا",
-    category: "خدمات خانه",
+    categorySlug: "home-services",
     icon: "/reftek-icons/fixa.svg",
     sortOrder: 1,
     linkType: "static",
@@ -96,7 +97,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "filmnet",
     name: "فیلم نت",
-    category: "سرگرمی، فیلم و سریال",
+    categorySlug: "entertainment",
     icon: "/reftek-icons/Filmnet-Logo.webp",
     sortOrder: 1,
     linkType: "static",
@@ -105,7 +106,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "filimo",
     name: "فیلیمو",
-    category: "سرگرمی، فیلم و سریال",
+    categorySlug: "entertainment",
     icon: "/reftek-icons/filimo.png",
     sortOrder: 2,
     linkType: "static",
@@ -114,7 +115,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "zaban-shenas",
     name: "زبان شناس",
-    category: "آموزش و مهارت آموزی",
+    categorySlug: "education",
     icon: "/reftek-icons/zaban-shenas.png",
     sortOrder: 2,
     linkType: "static",
@@ -123,7 +124,7 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "nashr-iran-ban",
     name: "نشر ایران بان",
-    category: "کتاب و مطالعه",
+    categorySlug: "books",
     icon: "/reftek-icons/nashr-iran-ban.png",
     sortOrder: 1,
     linkType: "static",
@@ -132,25 +133,16 @@ export const REFTEK_APPS: ReftekAppDefinition[] = [
   {
     appId: "ketab-land",
     name: "کتاب لند",
-    category: "کتاب و مطالعه",
+    categorySlug: "books",
     icon: "/reftek-icons/KETABLAND-logo.webp",
     sortOrder: 2,
     linkType: "static",
     url: "https://ketab.land/",
   },
   {
-    appId: "maktabkhooneh",
-    name: "مکتب خونه",
-    category: "کتاب و مطالعه",
-    icon: "/reftek-icons/maktabkhooneh.webp",
-    sortOrder: 3,
-    linkType: "static",
-    url: "https://maktabkhooneh.org/",
-  },
-  {
     appId: "aia-plus",
     name: "آیا پلاس",
-    category: "هوش مصنوعی",
+    categorySlug: "ai",
     icon: "/reftek-icons/aia-plus.png",
     sortOrder: 2,
     linkType: "static",

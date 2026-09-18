@@ -4,7 +4,7 @@ import { launchReftekApp, listReftekApps } from "../services/reftek.service.js";
 
 export async function listApps(_req: Request, res: Response, next: NextFunction) {
   try {
-    sendSuccess(res, listReftekApps());
+    sendSuccess(res, await listReftekApps());
   } catch (error) {
     next(error);
   }

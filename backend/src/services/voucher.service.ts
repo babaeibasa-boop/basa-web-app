@@ -10,13 +10,13 @@ import {
   isVoucherExpired,
   parseVoucherExpiresAt,
 } from "../lib/voucher-expiry.js";
+import { assertSlug } from "../lib/slug.js";
 import { walletService } from "./wallet.service.js";
 import { isHideVouchersExpiringSoonEnabled } from "./settings.service.js";
 import { config } from "../lib/config.js";
 
 const MAX_VOUCHER_IMPORT_ROWS = 500;
 
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const STALE_UNPAID_MS = 2 * 60 * 1000;
 const STALE_CHECKOUT_MS = 15 * 60 * 1000;
 
@@ -31,6 +31,7 @@ export interface CreatePlatformInput {
   slug: string;
   logoUrl: string;
   apiKey: string;
+  categoryId: string;
 }
 
 export interface UpdatePlatformInput {
@@ -38,6 +39,7 @@ export interface UpdatePlatformInput {
   slug?: string;
   logoUrl?: string;
   apiKey?: string;
+  categoryId?: string;
 }
 
 export interface CreateVoucherInput {
@@ -56,11 +58,7 @@ export interface ImportVoucherRow {
   code?: unknown;
 }
 
-function assertSlug(slug: string) {
-  if (!SLUG_PATTERN.test(slug)) {
-    throw new AppError("شناسه پلتفرم فقط می‌تواند شامل حروف انگلیسی کوچک، عدد و خط تیره باشد", 400);
-  }
-}
+type CategorySummary = { id: string; name: string; slug: string; sortOrder?: number };
 
 function platformPwd(encryptedApiKey: string) {
   try {
@@ -94,19 +92,38 @@ function durationSortValue(duration: string) {
   return DURATION_MONTHS_PATTERN.test(months) ? Number(months) : Number.POSITIVE_INFINITY;
 }
 
-function serializePlatformPublic<T extends { id: string; name: string; slug: string; logoUrl: string }>(
-  platform: T,
-) {
+function serializeCategory(category: CategorySummary) {
+  return {
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    ...(category.sortOrder !== undefined ? { sortOrder: category.sortOrder } : {}),
+  };
+}
+
+function serializePlatformPublic<
+  T extends { id: string; name: string; slug: string; logoUrl: string; category?: CategorySummary | null },
+>(platform: T) {
   return {
     id: platform.id,
     name: platform.name,
     slug: platform.slug,
     logoUrl: platform.logoUrl,
+    ...(platform.category ? { category: serializeCategory(platform.category) } : {}),
   };
 }
 
 function serializeAdminPlatform<
-  T extends { id: string; name: string; slug: string; logoUrl: string; encryptedApiKey: string; createdAt: Date; updatedAt: Date },
+  T extends {
+    id: string;
+    name: string;
+    slug: string;
+    logoUrl: string;
+    encryptedApiKey: string;
+    createdAt: Date;
+    updatedAt: Date;
+    category?: CategorySummary | null;
+  },
 >(platform: T) {
   return {
     id: platform.id,
@@ -116,7 +133,14 @@ function serializeAdminPlatform<
     hasApiKey: platform.encryptedApiKey.length > 0,
     createdAt: platform.createdAt,
     updatedAt: platform.updatedAt,
+    ...(platform.category ? { category: serializeCategory(platform.category) } : {}),
   };
+}
+
+async function assertCategoryExists(categoryId: string) {
+  const category = await prisma.category.findUnique({ where: { id: categoryId } });
+  if (!category) throw new AppError("دسته‌بندی یافت نشد", 404);
+  return category;
 }
 
 function earlierOfferExpiry(existing: string | null, next: Date | null) {
@@ -155,18 +179,16 @@ export function groupAvailableOffers(
   );
 }
 
-export async function listPlatforms() {
-  const platforms = await prisma.voucherPlatform.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, slug: true, logoUrl: true },
-  });
-  return platforms.map(serializePlatformPublic);
-}
-
 export async function getPlatformOffers(slug: string) {
   const platform = await prisma.voucherPlatform.findUnique({
     where: { slug },
-    select: { id: true, name: true, slug: true, logoUrl: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      logoUrl: true,
+      category: { select: { id: true, name: true, slug: true } },
+    },
   });
   if (!platform) throw new AppError("پلتفرم یافت نشد", 404);
 
@@ -306,15 +328,30 @@ export async function initiateVoucherPayment(purchaseId: string, userId: string)
   return { payUrl: payment.pay_url };
 }
 
-export async function getUserPurchases(userId: string) {
+export async function getUserPurchases(userId: string, platformSlug?: string) {
   const purchases = await prisma.voucherPurchase.findMany({
-    where: { userId },
+    where: {
+      userId,
+      ...(platformSlug ? { voucher: { platform: { slug: platformSlug } } } : {}),
+    },
     include: { voucher: { include: { platform: true } } },
     orderBy: { createdAt: "desc" },
   });
   return purchases.map((purchase) =>
     serializeUserPurchase(purchase, { revealCode: purchase.status === VoucherPurchaseStatus.PAID }),
   );
+}
+
+function voucherPaymentResult(
+  success: boolean,
+  purchase: { id: string; voucher: { platform: { slug: string } } },
+) {
+  return {
+    success,
+    type: "voucher" as const,
+    purchaseId: purchase.id,
+    platformSlug: purchase.voucher.platform.slug,
+  };
 }
 
 export async function verifyVoucherPayment(
@@ -329,13 +366,13 @@ export async function verifyVoucherPayment(
   if (!purchase) return null;
 
   if (purchase.status === VoucherPurchaseStatus.PAID) {
-    return { success: true, type: "voucher" as const, purchaseId: purchase.id };
+    return voucherPaymentResult(true, purchase);
   }
 
   if (status === "Cancel") {
     logPayment("Voucher payment cancelled by user", { purchaseId: purchase.id });
     await releasePurchase(purchase.id, purchase.voucherId, purchase.voucher.expiresAt);
-    return { success: false, type: "voucher" as const, purchaseId: purchase.id };
+    return voucherPaymentResult(false, purchase);
   }
 
   if (status !== "Done") {
@@ -348,7 +385,7 @@ export async function verifyVoucherPayment(
   if (settlement.status !== "OK" || !settlement.data || settlement.data.status !== "Paid") {
     logPayment("Voucher settlement not paid", { purchaseId: purchase.id, status: settlement.status });
     await releasePurchase(purchase.id, purchase.voucherId, purchase.voucher.expiresAt);
-    return { success: false, type: "voucher" as const, purchaseId: purchase.id };
+    return voucherPaymentResult(false, purchase);
   }
 
   await prisma.$transaction([
@@ -363,7 +400,7 @@ export async function verifyVoucherPayment(
   ]);
 
   logPayment("Voucher invoice paid", { purchaseId: purchase.id });
-  return { success: true, type: "voucher" as const, purchaseId: purchase.id };
+  return voucherPaymentResult(true, purchase);
 }
 
 async function releaseStaleReservations(platformId: string) {
@@ -438,12 +475,16 @@ function serializeUserPurchase(
 }
 
 export async function listAdminPlatforms() {
-  const platforms = await prisma.voucherPlatform.findMany({ orderBy: { createdAt: "desc" } });
+  const platforms = await prisma.voucherPlatform.findMany({
+    include: { category: true },
+    orderBy: { createdAt: "desc" },
+  });
   return platforms.map(serializeAdminPlatform);
 }
 
 export async function createPlatform(input: CreatePlatformInput) {
-  assertSlug(input.slug);
+  assertSlug(input.slug, "شناسه پلتفرم");
+  await assertCategoryExists(input.categoryId);
   try {
     const platform = await prisma.voucherPlatform.create({
       data: {
@@ -451,7 +492,9 @@ export async function createPlatform(input: CreatePlatformInput) {
         slug: input.slug,
         logoUrl: input.logoUrl.trim(),
         encryptedApiKey: encrypt(input.apiKey),
+        categoryId: input.categoryId,
       },
+      include: { category: true },
     });
     return serializeAdminPlatform(platform);
   } catch (error) {
@@ -465,7 +508,8 @@ export async function createPlatform(input: CreatePlatformInput) {
 export async function updatePlatform(id: string, input: UpdatePlatformInput) {
   const existing = await prisma.voucherPlatform.findUnique({ where: { id } });
   if (!existing) throw new AppError("پلتفرم یافت نشد", 404);
-  if (input.slug) assertSlug(input.slug);
+  if (input.slug) assertSlug(input.slug, "شناسه پلتفرم");
+  if (input.categoryId) await assertCategoryExists(input.categoryId);
 
   try {
     const platform = await prisma.voucherPlatform.update({
@@ -475,7 +519,9 @@ export async function updatePlatform(id: string, input: UpdatePlatformInput) {
         ...(input.slug !== undefined ? { slug: input.slug } : {}),
         ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl.trim() } : {}),
         ...(input.apiKey ? { encryptedApiKey: encrypt(input.apiKey) } : {}),
+        ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
       },
+      include: { category: true },
     });
     return serializeAdminPlatform(platform);
   } catch (error) {

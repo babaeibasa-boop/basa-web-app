@@ -6,7 +6,8 @@ import type {
   SubscriptionProduct,
   Admin,
   DashboardStats,
-  ReftekApp,
+  ReftekCatalogItem,
+  Category,
   VoucherPlatform,
   VoucherPlatformDetail,
   VoucherPurchase,
@@ -40,15 +41,17 @@ export const paymentApi = {
   verifyPayment: (data: { pt: string; pn: string; st: string }) =>
     api.post<
       unknown,
-      ApiResponse<{ success: boolean; orderId?: string; purchaseId?: string; type: "order" | "voucher" }>
+      ApiResponse<{ success: boolean; orderId?: string; purchaseId?: string; platformSlug?: string; type: "order" | "voucher" }>
     >("/payments/verify", data),
 };
 
 export const voucherApi = {
-  getPlatforms: () => api.get<unknown, ApiResponse<VoucherPlatform[]>>("/vouchers/platforms"),
   getPlatform: (slug: string) =>
     api.get<unknown, ApiResponse<VoucherPlatformDetail>>(`/vouchers/platforms/${encodeURIComponent(slug)}`),
-  getPurchases: () => api.get<unknown, ApiResponse<VoucherPurchase[]>>("/vouchers/purchases"),
+  getPurchases: (platformSlug?: string) =>
+    api.get<unknown, ApiResponse<VoucherPurchase[]>>("/vouchers/purchases", {
+      params: platformSlug ? { platformSlug } : undefined,
+    }),
   createPurchase: (data: { platformSlug: string; amount: string; duration: string }) =>
     api.post<unknown, ApiResponse<VoucherPurchase>>("/vouchers/purchases", data),
   payPurchase: (id: string) =>
@@ -56,7 +59,7 @@ export const voucherApi = {
 };
 
 export const reftekApi = {
-  getApps: () => api.get<unknown, ApiResponse<ReftekApp[]>>("/reftek/apps"),
+  getApps: () => api.get<unknown, ApiResponse<ReftekCatalogItem[]>>("/reftek/apps"),
   launchApp: (appId: string) =>
     api.get<unknown, ApiResponse<{ url: string }>>(`/reftek/apps/${encodeURIComponent(appId)}/launch`),
 };
@@ -78,12 +81,18 @@ export const adminApi = {
   getPhones: () => api.get<unknown, ApiResponse<{ id: string; phone: string; admin: { fullName: string } }[]>>("/admin/phones"),
   addPhone: (phone: string) => api.post<unknown, ApiResponse<unknown>>("/admin/phones", { phone }),
   deletePhone: (id: string) => api.delete<unknown, ApiResponse<null>>(`/admin/phones/${id}`),
+  getCategories: () => api.get<unknown, ApiResponse<Category[]>>("/admin/categories"),
+  createCategory: (data: { name: string; slug: string; sortOrder?: number }) =>
+    api.post<unknown, ApiResponse<Category>>("/admin/categories", data),
+  updateCategory: (id: string, data: { name?: string; slug?: string; sortOrder?: number }) =>
+    api.patch<unknown, ApiResponse<Category>>(`/admin/categories/${encodeURIComponent(id)}`, data),
+  deleteCategory: (id: string) => api.delete<unknown, ApiResponse<null>>(`/admin/categories/${id}`),
   getVoucherPlatforms: () => api.get<unknown, ApiResponse<VoucherPlatform[]>>("/admin/voucher-platforms"),
-  createVoucherPlatform: (data: { name: string; slug: string; logoUrl: string; apiKey: string }) =>
+  createVoucherPlatform: (data: { name: string; slug: string; logoUrl: string; apiKey: string; categoryId: string }) =>
     api.post<unknown, ApiResponse<VoucherPlatform>>("/admin/voucher-platforms", data),
   updateVoucherPlatform: (
     id: string,
-    data: { name?: string; slug?: string; logoUrl?: string; apiKey?: string },
+    data: { name?: string; slug?: string; logoUrl?: string; apiKey?: string; categoryId?: string },
   ) => api.patch<unknown, ApiResponse<VoucherPlatform>>(`/admin/voucher-platforms/${encodeURIComponent(id)}`, data),
   deleteVoucherPlatform: (id: string) =>
     api.delete<unknown, ApiResponse<null>>(`/admin/voucher-platforms/${id}`),
