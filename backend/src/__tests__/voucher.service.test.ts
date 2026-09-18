@@ -12,6 +12,7 @@ const { prisma, walletService } = vi.hoisted(() => {
       findMany: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
+      create: vi.fn(),
     },
     voucherPurchase: {
       findFirst: vi.fn(),
@@ -19,6 +20,10 @@ const { prisma, walletService } = vi.hoisted(() => {
       create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
+    },
+    appSetting: {
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
     },
     $transaction: vi.fn(),
   };
@@ -48,8 +53,11 @@ vi.mock("../services/wallet.service.js", () => ({ walletService }));
 
 import {
   createPurchase,
+  createVoucher,
+  getPlatformOffers,
   getUserPurchases,
   groupAvailableOffers,
+  importVouchers,
   initiateVoucherPayment,
   verifyVoucherPayment,
   walletCallbackUrlForPlatform,
@@ -117,6 +125,17 @@ describe("groupAvailableOffers", () => {
     expect(offers[0]).toMatchObject({ duration: "1", availableCount: 2 });
     expect(offers[1]).toMatchObject({ duration: "6", availableCount: 1 });
   });
+
+  it("keeps no-expiry groups as null and uses the earliest dated voucher otherwise", () => {
+    const later = new Date(future.getTime() + 86_400_000);
+    const mixed = groupAvailableOffers([
+      { amount: 10000n, duration: "6", expiresAt: later },
+      { amount: 10000n, duration: "6", expiresAt: null },
+      { amount: 20000n, duration: "12", expiresAt: null },
+    ]);
+    expect(mixed[0]).toMatchObject({ duration: "6", expiresAt: later.toISOString(), availableCount: 2 });
+    expect(mixed[1]).toMatchObject({ duration: "12", expiresAt: null, availableCount: 1 });
+  });
 });
 
 describe("createPurchase", () => {
@@ -149,7 +168,7 @@ describe("createPurchase", () => {
         platformId: "p1",
         amount: 10000n,
         status: VoucherStatus.AVAILABLE,
-        expiresAt: { gt: expect.any(Date) },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }],
       },
       orderBy: { createdAt: "asc" },
     });
@@ -314,5 +333,125 @@ describe("normalize voucher duration", () => {
       message: "مدت واچر باید تعداد ماه و فقط عدد باشد",
       statusCode: 400,
     } satisfies Partial<AppError>);
+  });
+});
+
+describe("createVoucher", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prisma.voucherPlatform.findUnique.mockResolvedValue(platform);
+  });
+
+  it("creates a voucher without an expiration date", async () => {
+    prisma.voucher.create.mockResolvedValue(voucherRecord({ expiresAt: null }));
+
+    const result = await createVoucher({
+      platformId: "p1",
+      amount: "10000",
+      duration: "6",
+      expiresAt: null,
+      code: "CODE-1",
+    });
+
+    expect(prisma.voucher.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          expiresAt: null,
+          duration: "6",
+          encryptedCode: "enc:CODE-1",
+        }),
+      }),
+    );
+    expect(result.expiresAt).toBeNull();
+  });
+});
+
+describe("importVouchers", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prisma.voucherPlatform.findMany.mockResolvedValue([platform]);
+    prisma.voucherPlatform.findUnique.mockResolvedValue(platform);
+  });
+
+  it("imports valid rows and reports invalid ones", async () => {
+    prisma.voucher.create.mockResolvedValue(voucherRecord({ expiresAt: null }));
+
+    const result = await importVouchers([
+      { platform: "spotify", amount: "10000", duration: "6", code: "OK-1" },
+      { platform: "missing", amount: "10000", duration: "6", code: "BAD-1" },
+      { platform: "spotify", amount: "10000", duration: "abc", code: "BAD-2" },
+    ]);
+
+    expect(result.created).toBe(1);
+    expect(result.failed).toBe(2);
+    expect(result.errors).toEqual([
+      { row: 3, message: "پلتفرم یافت نشد" },
+      { row: 4, message: "مدت واچر باید تعداد ماه و فقط عدد باشد" },
+    ]);
+  });
+});
+
+describe("getPlatformOffers", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prisma.voucherPlatform.findUnique.mockResolvedValue(platform);
+    prisma.voucherPurchase.findMany.mockResolvedValue([]);
+  });
+
+  it("hides vouchers expiring within two days when the setting is on", async () => {
+    prisma.appSetting.findUnique.mockResolvedValue({ value: "true" });
+    prisma.voucher.findMany.mockResolvedValue([]);
+
+    await getPlatformOffers("spotify");
+
+    expect(prisma.voucher.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }],
+        }),
+      }),
+    );
+    const cutoff = (prisma.voucher.findMany.mock.calls[0][0] as { where: { OR: { expiresAt?: { gt: Date } }[] } })
+      .where.OR[1]?.expiresAt?.gt as Date;
+    expect(cutoff.getTime()).toBeGreaterThan(Date.now() + 47 * 60 * 60 * 1000);
+  });
+
+  it("only excludes already expired vouchers when the setting is off", async () => {
+    prisma.appSetting.findUnique.mockResolvedValue({ value: "false" });
+    prisma.voucher.findMany.mockResolvedValue([{ amount: 10000n, duration: "6", expiresAt: null }]);
+
+    const result = await getPlatformOffers("spotify");
+
+    const cutoff = (prisma.voucher.findMany.mock.calls[0][0] as { where: { OR: { expiresAt?: { gt: Date } }[] } })
+      .where.OR[1]?.expiresAt?.gt as Date;
+    expect(cutoff.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
+    expect(result.offers[0]?.expiresAt).toBeNull();
+  });
+});
+
+describe("release without expiry", () => {
+  it("returns a reserved no-expiry voucher to available stock", async () => {
+    prisma.voucherPurchase.findFirst.mockResolvedValue({
+      id: "pur1",
+      userId: "user-1",
+      voucherId: "v1",
+      amount: 10000n,
+      status: VoucherPurchaseStatus.PENDING_PAYMENT,
+      user: { walletToken: "ut-1" },
+      voucher: voucherRecord({ status: VoucherStatus.RESERVED, expiresAt: null }),
+    });
+    walletService.requestPayment.mockRejectedValue(new AppError("خطا در ایجاد درخواست پرداخت", 502));
+    prisma.$transaction.mockImplementation(async (ops: unknown) => ops);
+    prisma.voucherPurchase.updateMany.mockResolvedValue({ count: 1 });
+    prisma.voucher.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(initiateVoucherPayment("pur1", "user-1")).rejects.toMatchObject({
+      message: "خطا در ایجاد درخواست پرداخت",
+    });
+
+    expect(prisma.voucher.updateMany).toHaveBeenCalledWith({
+      where: { id: "v1", status: VoucherStatus.RESERVED },
+      data: { status: VoucherStatus.AVAILABLE },
+    });
   });
 });

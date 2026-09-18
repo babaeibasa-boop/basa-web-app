@@ -12,6 +12,8 @@ import type {
   VoucherPurchase,
   AdminVoucher,
   VoucherSale,
+  AdminSettings,
+  VoucherImportResult,
 } from "@/types";
 
 export const authApi = {
@@ -82,7 +84,7 @@ export const adminApi = {
   updateVoucherPlatform: (
     id: string,
     data: { name?: string; slug?: string; logoUrl?: string; apiKey?: string },
-  ) => api.patch<unknown, ApiResponse<VoucherPlatform>>(`/admin/voucher-platforms/${id}`, data),
+  ) => api.patch<unknown, ApiResponse<VoucherPlatform>>(`/admin/voucher-platforms/${encodeURIComponent(id)}`, data),
   deleteVoucherPlatform: (id: string) =>
     api.delete<unknown, ApiResponse<null>>(`/admin/voucher-platforms/${id}`),
   getVouchers: (params?: { status?: string; platformId?: string; search?: string; page?: number }) =>
@@ -94,12 +96,17 @@ export const adminApi = {
     platformId: string;
     amount: string;
     duration: string;
-    expiresAt: string;
+    expiresAt?: string | null;
     code: string;
   }) => api.post<unknown, ApiResponse<AdminVoucher>>("/admin/vouchers", data),
+  importVouchers: (rows: Record<string, unknown>[]) =>
+    api.post<unknown, ApiResponse<VoucherImportResult>>("/admin/vouchers/import", { rows }),
   getVoucherSales: (params?: { search?: string; page?: number }) =>
     api.get<unknown, ApiResponse<{ sales: VoucherSale[]; total: number; page: number; limit: number }>>(
       "/admin/voucher-sales",
       { params },
     ),
+  getSettings: () => api.get<unknown, ApiResponse<AdminSettings>>("/admin/settings"),
+  updateSettings: (data: { hideVouchersExpiringSoon: boolean }) =>
+    api.patch<unknown, ApiResponse<AdminSettings>>("/admin/settings", data),
 };

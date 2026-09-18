@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/api";
 import { AdminLayout } from "@/components/layout/layout";
@@ -6,8 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, EmptyState, Skeleton } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { JalaliDateTimePicker } from "@/components/ui/jalali-datetime-picker";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate, formatDurationMonths, formatPrice, parseDigitInput, VOUCHER_STATUS_LABELS } from "@/lib/utils";
+import { downloadVoucherImportTemplate, parseVoucherImportSheet } from "@/lib/voucher-import";
+import { formatDurationMonths, formatPrice, formatVoucherExpiry, parseDigitInput, VOUCHER_STATUS_LABELS } from "@/lib/utils";
+import type { VoucherImportResult } from "@/types";
 
 const STATUS_OPTIONS = [
   { value: "", label: "همه" },
@@ -33,10 +36,12 @@ function statusVariant(status: string) {
 export default function AdminVouchersPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [platformId, setPlatformId] = useState("");
   const [page, setPage] = useState(1);
+  const [importResult, setImportResult] = useState<VoucherImportResult | null>(null);
   const [form, setForm] = useState({
     platformId: "",
     amount: "",
@@ -67,7 +72,7 @@ export default function AdminVouchersPage() {
         platformId: form.platformId,
         amount: parseDigitInput(form.amount),
         duration: parseDigitInput(form.duration),
-        expiresAt: new Date(form.expiresAt).toISOString(),
+        expiresAt: form.expiresAt || null,
         code: form.code,
       }),
     onSuccess: () => {
@@ -78,13 +83,35 @@ export default function AdminVouchersPage() {
     onError: (err: Error) => toast(err.message, "destructive"),
   });
 
+  const importMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const rows = parseVoucherImportSheet(await file.arrayBuffer());
+      if (rows.length === 0) {
+        throw new Error("فایل اکسل خالی است");
+      }
+      return adminApi.importVouchers(rows);
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-vouchers"] });
+      setImportResult(res.data);
+      if (res.data.failed === 0) {
+        toast(`${res.data.created.toLocaleString("fa-IR")} واچر وارد شد`);
+      } else {
+        toast(
+          `${res.data.created.toLocaleString("fa-IR")} واچر وارد شد، ${res.data.failed.toLocaleString("fa-IR")} ردیف نامعتبر`,
+          res.data.created > 0 ? "default" : "destructive",
+        );
+      }
+    },
+    onError: (err: Error) => toast(err.message, "destructive"),
+  });
+
   const platforms = platformsQuery.data?.data ?? [];
   const vouchers = data?.data?.vouchers ?? [];
   const total = data?.data?.total ?? 0;
   const limit = data?.data?.limit ?? 20;
   const totalPages = Math.ceil(total / limit);
-  const canCreate =
-    form.platformId && form.amount && /^[1-9]\d*$/.test(form.duration) && form.expiresAt && form.code;
+  const canCreate = form.platformId && form.amount && /^[1-9]\d*$/.test(form.duration) && form.code;
 
   return (
     <AdminLayout>
@@ -134,13 +161,19 @@ export default function AdminVouchersPage() {
               />
             </div>
             <div>
-              <Label htmlFor="expiresAt">تاریخ انقضا</Label>
-              <Input
-                id="expiresAt"
-                type="datetime-local"
-                value={form.expiresAt}
-                onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
-              />
+              <Label htmlFor="expiresAt">تاریخ انقضا (اختیاری)</Label>
+              <div className="flex gap-2">
+                <JalaliDateTimePicker
+                  id="expiresAt"
+                  value={form.expiresAt}
+                  onChange={(expiresAt) => setForm({ ...form, expiresAt })}
+                />
+                {form.expiresAt && (
+                  <Button type="button" variant="outline" size="sm" className="mt-0 h-10" onClick={() => setForm({ ...form, expiresAt: "" })}>
+                    پاک کردن
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="sm:col-span-2">
               <Label htmlFor="code">کد واچر</Label>
@@ -155,6 +188,58 @@ export default function AdminVouchersPage() {
           <Button size="sm" disabled={!canCreate || createMutation.isPending} onClick={() => createMutation.mutate()}>
             افزودن
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base">ورود از اکسل</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            ستون‌ها: پلتفرم (شناسه یا نام)، مبلغ، مدت (ماه)، تاریخ انقضا شمسی (اختیاری)، کد
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={downloadVoucherImportTemplate}>
+              دانلود نمونه اکسل
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={importMutation.isPending}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {importMutation.isPending ? "در حال ورود..." : "انتخاب فایل"}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) importMutation.mutate(file);
+              }}
+            />
+          </div>
+          {importResult && (
+            <div className="space-y-2 text-sm">
+              <p>
+                وارد شده: {importResult.created.toLocaleString("fa-IR")} — ناموفق:{" "}
+                {importResult.failed.toLocaleString("fa-IR")}
+              </p>
+              {importResult.errors.length > 0 && (
+                <ul className="max-h-40 space-y-1 overflow-auto rounded-lg border p-3 text-destructive">
+                  {importResult.errors.map((error) => (
+                    <li key={`${error.row}-${error.message}`}>
+                      ردیف {error.row.toLocaleString("fa-IR")}: {error.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -218,7 +303,7 @@ export default function AdminVouchersPage() {
                   {voucher.platform.name} — {formatPrice(voucher.amount)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDurationMonths(voucher.duration)} — انقضا {formatDate(voucher.expiresAt)}
+                  {formatDurationMonths(voucher.duration)} — انقضا {formatVoucherExpiry(voucher.expiresAt)}
                 </p>
                 <p className="truncate text-xs text-muted-foreground" dir="ltr">
                   {voucher.code}

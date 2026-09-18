@@ -16,6 +16,20 @@ export default function AdminSettingsPage() {
   const [phone, setPhone] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  const settingsQuery = useQuery({
+    queryKey: ["admin-settings"],
+    queryFn: () => adminApi.getSettings(),
+  });
+
+  const settingsMutation = useMutation({
+    mutationFn: (hideVouchersExpiringSoon: boolean) => adminApi.updateSettings({ hideVouchersExpiringSoon }),
+    onSuccess: (res) => {
+      queryClient.setQueryData(["admin-settings"], res);
+      toast("تنظیمات واچر ذخیره شد");
+    },
+    onError: (err: Error) => toast(err.message, "destructive"),
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["admin-phones"],
     queryFn: () => adminApi.getPhones(),
@@ -45,6 +59,33 @@ export default function AdminSettingsPage() {
   return (
     <AdminLayout>
       <h2 className="mb-6 text-xl font-bold">تنظیمات</h2>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base">تنظیمات واچر</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {settingsQuery.isLoading ? (
+            <Skeleton className="h-12 w-full" />
+          ) : (
+            <label className="flex cursor-pointer items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4"
+                checked={settingsQuery.data?.data.hideVouchersExpiringSoon ?? true}
+                disabled={settingsMutation.isPending}
+                onChange={(event) => settingsMutation.mutate(event.target.checked)}
+              />
+              <span>
+                <span className="font-medium">مخفی کردن واچرهای نزدیک به انقضا</span>
+                <span className="mt-1 block text-muted-foreground">
+                  اگر فعال باشد، واچرهایی که کمتر از دو روز تا انقضایشان مانده برای کاربران نمایش داده نمی‌شوند. واچرهای بدون تاریخ انقضا همیشه نمایش داده می‌شوند.
+                </span>
+              </span>
+            </label>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

@@ -1,9 +1,25 @@
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: { "Content-Type": "application/json" },
 });
+
+function errorMessage(error: unknown) {
+  if (!isAxiosError(error)) return "خطای ارتباط با سرور";
+  const data = error.response?.data as { message?: unknown } | string | undefined;
+  if (data && typeof data === "object" && data.message) {
+    return String(data.message);
+  }
+  if (typeof data === "string" && data.trim()) {
+    const text = data.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (text) return text.slice(0, 200);
+  }
+  if (error.response?.status) {
+    return `خطای سرور (${error.response.status})`;
+  }
+  return "خطای ارتباط با سرور";
+}
 
 api.interceptors.request.use((config) => {
   const userToken = localStorage.getItem("userToken");
@@ -26,8 +42,7 @@ api.interceptors.response.use(
         window.location.href = "/admin/login";
       }
     }
-    const message = error.response?.data?.message || "خطای ارتباط با سرور";
-    return Promise.reject(new Error(message));
+    return Promise.reject(new Error(errorMessage(error)));
   },
 );
 

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState, Skeleton } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatDate, formatDurationMonths, formatPrice } from "@/lib/utils";
+import { formatDate, formatDurationMonths, formatPrice, formatVoucherExpiry } from "@/lib/utils";
 
 export default function AdminVoucherSalesPage() {
   const [search, setSearch] = useState("");
@@ -65,7 +65,7 @@ export default function AdminVoucherSalesPage() {
                 </span>
               </p>
               <p className="text-sm text-muted-foreground">
-                مدت: {formatDurationMonths(sale.voucher.duration)} — انقضا: {formatDate(sale.voucher.expiresAt)}
+                مدت: {formatDurationMonths(sale.voucher.duration)} — انقضا: {formatVoucherExpiry(sale.voucher.expiresAt)}
               </p>
               <p className="truncate text-xs" dir="ltr">
                 کد: {sale.voucher.code}

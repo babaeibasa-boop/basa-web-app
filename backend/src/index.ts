@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { config } from "./lib/config.js";
 import { errorHandler } from "./middleware/error-handler.js";
-import { sendSuccess } from "./lib/response.js";
+import { sendError, sendSuccess } from "./lib/response.js";
 import authRoutes from "./routes/auth.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
@@ -46,9 +46,10 @@ app.use(
         callback(null, true);
         return;
       }
-      callback(new Error(`CORS blocked for origin: ${origin}`));
+      callback(null, false);
     },
     credentials: true,
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   }),
 );
 app.use(express.json());
@@ -64,6 +65,10 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/reftek", reftekRoutes);
 app.use("/api/vouchers", voucherRoutes);
 app.use("/wallet/top", walletTopRoutes);
+
+app.use((req, res) => {
+  sendError(res, "مسیر یافت نشد", 404);
+});
 
 app.use(errorHandler);
 

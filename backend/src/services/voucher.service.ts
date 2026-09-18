@@ -3,9 +3,18 @@ import { prisma } from "../lib/prisma.js";
 import { encrypt, decrypt } from "../lib/crypto.js";
 import { AppError } from "../lib/errors.js";
 import { logPayment } from "../lib/logger.js";
-import { DURATION_MONTHS_PATTERN, formatDurationMonths, parseDurationMonths } from "../lib/digits.js";
+import { DURATION_MONTHS_PATTERN, formatDurationMonths, parseDigitString, parseDurationMonths } from "../lib/digits.js";
+import {
+  assertExpiryInFuture,
+  availableVoucherExpiryWhere,
+  isVoucherExpired,
+  parseVoucherExpiresAt,
+} from "../lib/voucher-expiry.js";
 import { walletService } from "./wallet.service.js";
+import { isHideVouchersExpiringSoonEnabled } from "./settings.service.js";
 import { config } from "../lib/config.js";
+
+const MAX_VOUCHER_IMPORT_ROWS = 500;
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const STALE_UNPAID_MS = 2 * 60 * 1000;
@@ -35,8 +44,16 @@ export interface CreateVoucherInput {
   platformId: string;
   amount: string;
   duration: string;
-  expiresAt: string;
+  expiresAt?: unknown;
   code: string;
+}
+
+export interface ImportVoucherRow {
+  platform?: unknown;
+  amount?: unknown;
+  duration?: unknown;
+  expiresAt?: unknown;
+  code?: unknown;
 }
 
 function assertSlug(slug: string) {
@@ -102,12 +119,19 @@ function serializeAdminPlatform<
   };
 }
 
+function earlierOfferExpiry(existing: string | null, next: Date | null) {
+  if (!next) return existing;
+  const nextIso = next.toISOString();
+  if (!existing) return nextIso;
+  return Date.parse(nextIso) < Date.parse(existing) ? nextIso : existing;
+}
+
 export function groupAvailableOffers(
-  vouchers: { amount: bigint; duration: string; expiresAt: Date }[],
+  vouchers: { amount: bigint; duration: string; expiresAt: Date | null }[],
 ) {
   const groups = new Map<
     string,
-    { amount: string; duration: string; expiresAt: string; availableCount: number }
+    { amount: string; duration: string; expiresAt: string | null; availableCount: number }
   >();
 
   for (const voucher of vouchers) {
@@ -115,14 +139,12 @@ export function groupAvailableOffers(
     const existing = groups.get(duration);
     if (existing) {
       existing.availableCount += 1;
-      if (voucher.expiresAt.getTime() < Date.parse(existing.expiresAt)) {
-        existing.expiresAt = voucher.expiresAt.toISOString();
-      }
+      existing.expiresAt = earlierOfferExpiry(existing.expiresAt, voucher.expiresAt);
     } else {
       groups.set(duration, {
         amount: voucher.amount.toString(),
         duration,
-        expiresAt: voucher.expiresAt.toISOString(),
+        expiresAt: voucher.expiresAt ? voucher.expiresAt.toISOString() : null,
         availableCount: 1,
       });
     }
@@ -150,11 +172,12 @@ export async function getPlatformOffers(slug: string) {
 
   await releaseStaleReservations(platform.id);
 
+  const hideExpiringSoon = await isHideVouchersExpiringSoonEnabled();
   const vouchers = await prisma.voucher.findMany({
     where: {
       platformId: platform.id,
       status: VoucherStatus.AVAILABLE,
-      expiresAt: { gt: new Date() },
+      ...availableVoucherExpiryWhere(hideExpiringSoon),
     },
     select: { amount: true, duration: true, expiresAt: true },
     orderBy: { createdAt: "asc" },
@@ -169,6 +192,7 @@ export async function getPlatformOffers(slug: string) {
 export async function createPurchase(userId: string, input: CreatePurchaseInput) {
   const amount = BigInt(input.amount);
   const duration = normalizeVoucherDuration(input.duration);
+  const hideExpiringSoon = await isHideVouchersExpiringSoonEnabled();
 
   return prisma.$transaction(async (tx) => {
     const platform = await tx.voucherPlatform.findUnique({ where: { slug: input.platformSlug } });
@@ -179,7 +203,7 @@ export async function createPurchase(userId: string, input: CreatePurchaseInput)
         platformId: platform.id,
         amount,
         status: VoucherStatus.AVAILABLE,
-        expiresAt: { gt: new Date() },
+        ...availableVoucherExpiryWhere(hideExpiringSoon),
       },
       orderBy: { createdAt: "asc" },
     });
@@ -228,7 +252,7 @@ export async function initiateVoucherPayment(purchaseId: string, userId: string)
   if (purchase.voucher.status !== VoucherStatus.RESERVED) {
     throw new AppError("این واچر قابل پرداخت نیست", 400);
   }
-  if (purchase.voucher.expiresAt.getTime() <= Date.now()) {
+  if (isVoucherExpired(purchase.voucher.expiresAt)) {
     await releasePurchase(purchase.id, purchase.voucherId, purchase.voucher.expiresAt);
     throw new AppError("این واچر منقضی شده است", 400);
   }
@@ -363,9 +387,8 @@ async function releaseStaleReservations(platformId: string) {
   }
 }
 
-async function releasePurchase(purchaseId: string, voucherId: string, expiresAt: Date) {
-  const voucherStatus =
-    expiresAt.getTime() > Date.now() ? VoucherStatus.AVAILABLE : VoucherStatus.CANCELLED;
+async function releasePurchase(purchaseId: string, voucherId: string, expiresAt: Date | null) {
+  const voucherStatus = isVoucherExpired(expiresAt) ? VoucherStatus.CANCELLED : VoucherStatus.AVAILABLE;
 
   await prisma.$transaction([
     prisma.voucherPurchase.updateMany({
@@ -389,7 +412,7 @@ function serializeUserPurchase(
     voucher: {
       id: string;
       duration: string;
-      expiresAt: Date;
+      expiresAt: Date | null;
       status: VoucherStatus;
       encryptedCode: string;
       platform: { id: string; name: string; slug: string; logoUrl: string };
@@ -528,17 +551,37 @@ export async function listAdminVouchers(params: {
   };
 }
 
+function serializeAdminVoucher<
+  T extends {
+    id: string;
+    amount: bigint;
+    duration: string;
+    expiresAt: Date | null;
+    status: VoucherStatus;
+    createdAt: Date;
+    platform: { id: string; name: string; slug: string; logoUrl: string };
+  },
+>(voucher: T, code: string) {
+  return {
+    id: voucher.id,
+    amount: voucher.amount.toString(),
+    duration: voucher.duration,
+    expiresAt: voucher.expiresAt,
+    status: voucher.status,
+    code,
+    createdAt: voucher.createdAt,
+    platform: serializePlatformPublic(voucher.platform),
+  };
+}
+
 export async function createVoucher(input: CreateVoucherInput) {
   const platform = await prisma.voucherPlatform.findUnique({ where: { id: input.platformId } });
   if (!platform) throw new AppError("پلتفرم یافت نشد", 404);
 
-  const expiresAt = new Date(input.expiresAt);
-  if (Number.isNaN(expiresAt.getTime())) {
-    throw new AppError("تاریخ انقضا نامعتبر است", 400);
-  }
-  if (expiresAt.getTime() <= Date.now()) {
-    throw new AppError("تاریخ انقضا باید در آینده باشد", 400);
-  }
+  const expiresAt = parseVoucherExpiresAt(input.expiresAt);
+  assertExpiryInFuture(expiresAt);
+  const code = input.code.trim();
+  if (!code) throw new AppError("کد واچر الزامی است", 400);
 
   const voucher = await prisma.voucher.create({
     data: {
@@ -546,21 +589,79 @@ export async function createVoucher(input: CreateVoucherInput) {
       amount: BigInt(input.amount),
       duration: normalizeVoucherDuration(input.duration),
       expiresAt,
-      encryptedCode: encrypt(input.code.trim()),
+      encryptedCode: encrypt(code),
       status: VoucherStatus.AVAILABLE,
     },
     include: { platform: true },
   });
 
+  return serializeAdminVoucher(voucher, code);
+}
+
+function rowValue(row: ImportVoucherRow, keys: string[]) {
+  const record = row as Record<string, unknown>;
+  for (const key of keys) {
+    if (record[key] != null && String(record[key]).trim() !== "") return record[key];
+  }
+  return undefined;
+}
+
+async function resolveImportPlatform(
+  value: unknown,
+  platforms: { id: string; name: string; slug: string }[],
+) {
+  const key = String(value ?? "").trim();
+  if (!key) throw new AppError("پلتفرم الزامی است", 400);
+  const normalized = key.toLowerCase();
+  const platform =
+    platforms.find((item) => item.slug.toLowerCase() === normalized) ??
+    platforms.find((item) => item.name.toLowerCase() === normalized);
+  if (!platform) throw new AppError("پلتفرم یافت نشد", 404);
+  return platform;
+}
+
+export async function importVouchers(rows: ImportVoucherRow[]) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new AppError("فایل اکسل خالی است", 400);
+  }
+  if (rows.length > MAX_VOUCHER_IMPORT_ROWS) {
+    throw new AppError(`حداکثر ${MAX_VOUCHER_IMPORT_ROWS} ردیف در هر ورود مجاز است`, 400);
+  }
+
+  const platforms = await prisma.voucherPlatform.findMany({
+    select: { id: true, name: true, slug: true },
+  });
+
+  const created: Awaited<ReturnType<typeof createVoucher>>[] = [];
+  const errors: { row: number; message: string }[] = [];
+
+  for (let index = 0; index < rows.length; index += 1) {
+    const rowNumber = index + 2;
+    const row = rows[index] ?? {};
+    try {
+      const platform = await resolveImportPlatform(rowValue(row, ["platform", "پلتفرم", "slug", "platformSlug"]), platforms);
+      const amount = parseDigitString(String(rowValue(row, ["amount", "مبلغ"]) ?? ""));
+      if (!/^\d+$/.test(amount)) throw new AppError("مبلغ باید عدد باشد", 400);
+      const duration = parseDurationMonths(String(rowValue(row, ["duration", "مدت"]) ?? ""));
+      const code = String(rowValue(row, ["code", "کد"]) ?? "").trim();
+      const voucher = await createVoucher({
+        platformId: platform.id,
+        amount,
+        duration,
+        expiresAt: rowValue(row, ["expiresAt", "تاریخ انقضا", "expiry", "expiration"]),
+        code,
+      });
+      created.push(voucher);
+    } catch (error) {
+      const message = error instanceof AppError ? error.message : "خطا در ورود این ردیف";
+      errors.push({ row: rowNumber, message });
+    }
+  }
+
   return {
-    id: voucher.id,
-    amount: voucher.amount.toString(),
-    duration: voucher.duration,
-    expiresAt: voucher.expiresAt,
-    status: voucher.status,
-    code: input.code.trim(),
-    createdAt: voucher.createdAt,
-    platform: serializePlatformPublic(voucher.platform),
+    created: created.length,
+    failed: errors.length,
+    errors,
   };
 }
 

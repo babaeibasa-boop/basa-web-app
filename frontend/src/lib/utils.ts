@@ -38,10 +38,13 @@ export function formatDate(date: string): string {
   return new Intl.DateTimeFormat("fa-IR", {
     year: "numeric",
     month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    day: "numeric"
   }).format(new Date(date));
+}
+
+export function formatVoucherExpiry(date: string | null | undefined): string {
+  if (!date) return "بدون انقضا";
+  return formatDate(date);
 }
 
 export const ORDER_STATUS_LABELS: Record<string, string> = {

@@ -25,8 +25,10 @@ import {
   deletePlatform,
   listAdminVouchers,
   createVoucher,
+  importVouchers,
   listVoucherSales,
 } from "../services/voucher.service.js";
+import { getAdminSettings, updateAdminSettings } from "../services/settings.service.js";
 import { sendSuccess } from "../lib/response.js";
 import { DURATION_MONTHS_PATTERN, parseDigitString, parseDurationMonths } from "../lib/digits.js";
 
@@ -50,10 +52,13 @@ const addPhoneSchema = z.object({
   phone: z.string().min(10),
 });
 
-const slugSchema = z
-  .string()
-  .min(1)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "شناسه پلتفرم فقط می‌تواند شامل حروف انگلیسی کوچک، عدد و خط تیره باشد");
+const slugSchema = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim().toLowerCase() : value),
+  z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "شناسه پلتفرم فقط می‌تواند شامل حروف انگلیسی کوچک، عدد و خط تیره باشد"),
+);
 
 const createPlatformSchema = z.object({
   name: z.string().min(1),
@@ -79,8 +84,19 @@ const createVoucherSchema = z.object({
     (value) => (typeof value === "string" || typeof value === "number" ? parseDurationMonths(value) : value),
     z.string().regex(DURATION_MONTHS_PATTERN, "مدت باید تعداد ماه و فقط عدد باشد"),
   ),
-  expiresAt: z.string().min(1),
+  expiresAt: z
+    .union([z.string(), z.number(), z.null()])
+    .optional()
+    .transform((value) => (value === "" || value == null ? null : value)),
   code: z.string().min(1),
+});
+
+const importVouchersSchema = z.object({
+  rows: z.array(z.record(z.string(), z.unknown())).min(1, "فایل اکسل خالی است"),
+});
+
+const updateSettingsSchema = z.object({
+  hideVouchersExpiringSoon: z.boolean().optional(),
 });
 
 export async function login(req: Request, res: Response, next: NextFunction) {
@@ -254,6 +270,35 @@ export async function addVoucher(req: Request, res: Response, next: NextFunction
     const input = createVoucherSchema.parse(req.body);
     const voucher = await createVoucher(input);
     sendSuccess(res, voucher, "واچر اضافه شد", 201);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function importAdminVouchers(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { rows } = importVouchersSchema.parse(req.body);
+    const result = await importVouchers(rows);
+    sendSuccess(res, result, `${result.created} واچر وارد شد`);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function settings(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const data = await getAdminSettings();
+    sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function patchSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = updateSettingsSchema.parse(req.body);
+    const data = await updateAdminSettings(input);
+    sendSuccess(res, data, "تنظیمات ذخیره شد");
   } catch (error) {
     next(error);
   }

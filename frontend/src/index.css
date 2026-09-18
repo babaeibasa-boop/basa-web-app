@@ -80,3 +80,15 @@ body {
 @utility animate-accordion-up {
   animation: accordion-up 0.2s ease-out;
 }
+
+.rmdp-container {
+  width: 100%;
+}
+
+.rmdp-input {
+  box-sizing: border-box;
+}
+
+.rmdp-wrapper {
+  font-family: var(--font-sans);
+}

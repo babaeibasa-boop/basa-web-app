@@ -8,7 +8,7 @@ import { Badge, EmptyState, Skeleton } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate, formatDurationMonths, formatPrice } from "@/lib/utils";
+import { formatDurationMonths, formatPrice, formatVoucherExpiry } from "@/lib/utils";
 import type { VoucherOffer } from "@/types";
 
 export default function VoucherPlatformPage() {
@@ -91,7 +91,7 @@ export default function VoucherPlatformPage() {
                 <div>
                   <p className="text-lg font-bold">{formatDurationMonths(offer.duration)}</p>
                   <p className="text-sm text-muted-foreground">{formatPrice(offer.amount)}</p>
-                  <p className="text-xs text-muted-foreground">انقضا: {formatDate(offer.expiresAt)}</p>
+                  <p className="text-xs text-muted-foreground">انقضا: {formatVoucherExpiry(offer.expiresAt)}</p>
                 </div>
                 <Badge variant="secondary">{offer.availableCount.toLocaleString("fa-IR")} عدد</Badge>
               </div>

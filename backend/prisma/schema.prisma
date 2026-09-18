@@ -136,7 +136,7 @@ model Voucher {
   platformId    String
   amount        BigInt
   duration      String
-  expiresAt     DateTime
+  expiresAt     DateTime?
   encryptedCode String
   status        VoucherStatus @default(AVAILABLE)
   createdAt     DateTime      @default(now())
@@ -170,4 +170,13 @@ model VoucherPurchase {
   @@index([status])
   @@index([paymentTrackId])
   @@map("voucher_purchases")
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
 }

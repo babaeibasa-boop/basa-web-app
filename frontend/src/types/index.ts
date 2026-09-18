@@ -89,10 +89,20 @@ export interface VoucherPlatform {
   updatedAt?: string;
 }
 
+export interface AdminSettings {
+  hideVouchersExpiringSoon: boolean;
+}
+
+export interface VoucherImportResult {
+  created: number;
+  failed: number;
+  errors: { row: number; message: string }[];
+}
+
 export interface VoucherOffer {
   amount: string;
   duration: string;
-  expiresAt: string;
+  expiresAt: string | null;
   availableCount: number;
 }
 
@@ -110,7 +120,7 @@ export interface VoucherPurchase {
   voucher: {
     id: string;
     duration: string;
-    expiresAt: string;
+    expiresAt: string | null;
     status: string;
     platform: VoucherPlatform;
     code: string | null;
@@ -121,7 +131,7 @@ export interface AdminVoucher {
   id: string;
   amount: string;
   duration: string;
-  expiresAt: string;
+  expiresAt: string | null;
   status: string;
   code: string;
   createdAt: string;
@@ -137,7 +147,7 @@ export interface VoucherSale {
   voucher: {
     id: string;
     duration: string;
-    expiresAt: string;
+    expiresAt: string | null;
     code: string;
     platform: VoucherPlatform;
   };

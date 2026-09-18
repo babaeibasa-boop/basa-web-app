@@ -18,7 +18,10 @@ import {
   removeVoucherPlatform,
   vouchers,
   addVoucher,
+  importAdminVouchers,
   voucherSales,
+  settings,
+  patchSettings,
 } from "../controllers/admin.controller.js";
 import { authenticateAdmin } from "../middleware/auth.js";
 
@@ -47,6 +50,9 @@ router.patch("/voucher-platforms/:id", authenticateAdmin, patchVoucherPlatform);
 router.delete("/voucher-platforms/:id", authenticateAdmin, removeVoucherPlatform);
 router.get("/vouchers", authenticateAdmin, vouchers);
 router.post("/vouchers", authenticateAdmin, addVoucher);
+router.post("/vouchers/import", authenticateAdmin, importAdminVouchers);
 router.get("/voucher-sales", authenticateAdmin, voucherSales);
+router.get("/settings", authenticateAdmin, settings);
+router.patch("/settings", authenticateAdmin, patchSettings);
 
 export default router;
