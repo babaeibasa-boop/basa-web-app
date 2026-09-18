@@ -85,21 +85,21 @@ export default function App() {
                   <Route path="/voucher/:slug/purchases" element={<UserGuard><VoucherPurchasesPage /></UserGuard>} />
                   <Route path="/voucher/:slug" element={<UserGuard><VoucherPlatformPage /></UserGuard>} />
                   <Route path="/payment/result" element={<UserGuard><PaymentResultPage /></UserGuard>} />
+                  <Route path="/admin/login" element={<AdminLoginPage />} />
+                  <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />
+                  <Route path="/admin/orders" element={<AdminGuard><AdminOrdersPage /></AdminGuard>} />
+                  <Route path="/admin/orders/:id" element={<AdminGuard><AdminOrderDetailPage /></AdminGuard>} />
+                  <Route path="/admin/users" element={<AdminGuard><AdminUsersPage /></AdminGuard>} />
+                  <Route path="/admin/settings" element={<AdminGuard><AdminSettingsPage /></AdminGuard>} />
+                  <Route path="/admin/categories" element={<AdminGuard><AdminCategoriesPage /></AdminGuard>} />
+                  <Route path="/admin/voucher-platforms" element={<AdminGuard><AdminVoucherPlatformsPage /></AdminGuard>} />
+                  <Route path="/admin/vouchers" element={<AdminGuard><AdminVouchersPage /></AdminGuard>} />
+                  <Route path="/admin/voucher-sales" element={<AdminGuard><AdminVoucherSalesPage /></AdminGuard>} />
                   {!isProduction && (
                     <>
                       <Route path="/orders" element={<UserGuard><OrdersPage /></UserGuard>} />
                       <Route path="/orders/new" element={<UserGuard><CreateOrderPage /></UserGuard>} />
                       <Route path="/orders/:id" element={<UserGuard><OrderDetailPage /></UserGuard>} />
-                      <Route path="/admin/login" element={<AdminLoginPage />} />
-                      <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />
-                      <Route path="/admin/orders" element={<AdminGuard><AdminOrdersPage /></AdminGuard>} />
-                      <Route path="/admin/orders/:id" element={<AdminGuard><AdminOrderDetailPage /></AdminGuard>} />
-                      <Route path="/admin/users" element={<AdminGuard><AdminUsersPage /></AdminGuard>} />
-                      <Route path="/admin/settings" element={<AdminGuard><AdminSettingsPage /></AdminGuard>} />
-                      <Route path="/admin/categories" element={<AdminGuard><AdminCategoriesPage /></AdminGuard>} />
-                      <Route path="/admin/voucher-platforms" element={<AdminGuard><AdminVoucherPlatformsPage /></AdminGuard>} />
-                      <Route path="/admin/vouchers" element={<AdminGuard><AdminVouchersPage /></AdminGuard>} />
-                      <Route path="/admin/voucher-sales" element={<AdminGuard><AdminVoucherSalesPage /></AdminGuard>} />
                     </>
                   )}
                   <Route
