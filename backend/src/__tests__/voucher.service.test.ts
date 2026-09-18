@@ -70,7 +70,7 @@ function voucherRecord(overrides: Record<string, unknown> = {}) {
     id: "v1",
     platformId: "p1",
     amount: 10000n,
-    duration: "۱ ماه",
+    duration: "1",
     expiresAt: future,
     encryptedCode: "enc:SECRET-CODE",
     status: VoucherStatus.AVAILABLE,
@@ -90,15 +90,32 @@ describe("walletCallbackUrlForPlatform", () => {
 });
 
 describe("groupAvailableOffers", () => {
-  it("groups matching amount, duration, and expiration", () => {
+  it("groups vouchers by duration even when expiration dates differ", () => {
+    const later = new Date(future.getTime() + 86_400_000);
     const offers = groupAvailableOffers([
+      { amount: 10000n, duration: "1", expiresAt: future },
+      { amount: 10000n, duration: "6", expiresAt: future },
+      { amount: 10000n, duration: "6", expiresAt: later },
+      { amount: 20000n, duration: "6", expiresAt: future },
+      { amount: 30000n, duration: "12", expiresAt: future },
+      { amount: 30000n, duration: "12", expiresAt: later },
+    ]);
+    expect(offers).toHaveLength(3);
+    expect(offers.map((offer) => offer.duration)).toEqual(["1", "6", "12"]);
+    expect(offers[0]).toMatchObject({ duration: "1", amount: "10000", availableCount: 1 });
+    expect(offers[1]).toMatchObject({ duration: "6", availableCount: 3 });
+    expect(offers[2]).toMatchObject({ duration: "12", amount: "30000", availableCount: 2 });
+  });
+
+  it("treats legacy text durations as month counts", () => {
+    const offers = groupAvailableOffers([
+      { amount: 10000n, duration: "1", expiresAt: future },
       { amount: 10000n, duration: "۱ ماه", expiresAt: future },
-      { amount: 10000n, duration: "۱ ماه", expiresAt: future },
-      { amount: 20000n, duration: "۱ ماه", expiresAt: future },
+      { amount: 20000n, duration: "۶", expiresAt: future },
     ]);
     expect(offers).toHaveLength(2);
-    expect(offers[0]).toMatchObject({ amount: "10000", availableCount: 2 });
-    expect(offers[1]).toMatchObject({ amount: "20000", availableCount: 1 });
+    expect(offers[0]).toMatchObject({ duration: "1", availableCount: 2 });
+    expect(offers[1]).toMatchObject({ duration: "6", availableCount: 1 });
   });
 });
 
@@ -107,7 +124,7 @@ describe("createPurchase", () => {
     vi.clearAllMocks();
     prisma.$transaction.mockImplementation(async (fn: (tx: typeof prisma) => unknown) => fn(prisma));
     prisma.voucherPlatform.findUnique.mockResolvedValue(platform);
-    prisma.voucher.findFirst.mockResolvedValue(voucherRecord());
+    prisma.voucher.findMany.mockResolvedValue([voucherRecord()]);
   });
 
   it("reserves stock and creates a pending purchase", async () => {
@@ -124,8 +141,17 @@ describe("createPurchase", () => {
     const result = await createPurchase("user-1", {
       platformSlug: "spotify",
       amount: "10000",
-      duration: "۱ ماه",
-      expiresAt: future.toISOString(),
+      duration: "1",
+    });
+
+    expect(prisma.voucher.findMany).toHaveBeenCalledWith({
+      where: {
+        platformId: "p1",
+        amount: 10000n,
+        status: VoucherStatus.AVAILABLE,
+        expiresAt: { gt: expect.any(Date) },
+      },
+      orderBy: { createdAt: "asc" },
     });
 
     expect(prisma.voucher.updateMany).toHaveBeenCalledWith({
@@ -143,8 +169,7 @@ describe("createPurchase", () => {
       createPurchase("user-1", {
         platformSlug: "spotify",
         amount: "10000",
-        duration: "۱ ماه",
-        expiresAt: future.toISOString(),
+        duration: "1",
       }),
     ).rejects.toMatchObject({ message: "موجودی تمام شد", statusCode: 409 } satisfies Partial<AppError>);
   });
@@ -274,5 +299,20 @@ describe("verifyVoucherPayment", () => {
       data: { status: VoucherStatus.AVAILABLE },
     });
     expect(result?.success).toBe(false);
+  });
+});
+
+describe("normalize voucher duration", () => {
+  it("rejects non-numeric duration on purchase", async () => {
+    await expect(
+      createPurchase("user-1", {
+        platformSlug: "spotify",
+        amount: "10000",
+        duration: "یک ماه",
+      }),
+    ).rejects.toMatchObject({
+      message: "مدت واچر باید تعداد ماه و فقط عدد باشد",
+      statusCode: 400,
+    } satisfies Partial<AppError>);
   });
 });

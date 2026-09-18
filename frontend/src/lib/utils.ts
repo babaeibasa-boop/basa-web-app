@@ -28,6 +28,12 @@ export function formatPrice(amount: string | number): string {
   return new Intl.NumberFormat("fa-IR").format(num) + " ریال";
 }
 
+export function formatDurationMonths(duration: string): string {
+  const months = parseDigitInput(duration);
+  if (!months || !/^[1-9]\d*$/.test(months)) return duration;
+  return `${new Intl.NumberFormat("fa-IR").format(Number(months))} ماهه`;
+}
+
 export function formatDate(date: string): string {
   return new Intl.DateTimeFormat("fa-IR", {
     year: "numeric",

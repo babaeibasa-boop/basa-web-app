@@ -7,7 +7,7 @@ import { Badge, EmptyState, Skeleton } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate, formatPrice, parseDigitInput, VOUCHER_STATUS_LABELS } from "@/lib/utils";
+import { formatDate, formatDurationMonths, formatPrice, parseDigitInput, VOUCHER_STATUS_LABELS } from "@/lib/utils";
 
 const STATUS_OPTIONS = [
   { value: "", label: "همه" },
@@ -66,7 +66,7 @@ export default function AdminVouchersPage() {
       adminApi.createVoucher({
         platformId: form.platformId,
         amount: parseDigitInput(form.amount),
-        duration: form.duration,
+        duration: parseDigitInput(form.duration),
         expiresAt: new Date(form.expiresAt).toISOString(),
         code: form.code,
       }),
@@ -83,7 +83,8 @@ export default function AdminVouchersPage() {
   const total = data?.data?.total ?? 0;
   const limit = data?.data?.limit ?? 20;
   const totalPages = Math.ceil(total / limit);
-  const canCreate = form.platformId && form.amount && form.duration && form.expiresAt && form.code;
+  const canCreate =
+    form.platformId && form.amount && /^[1-9]\d*$/.test(form.duration) && form.expiresAt && form.code;
 
   return (
     <AdminLayout>
@@ -121,12 +122,15 @@ export default function AdminVouchersPage() {
               />
             </div>
             <div>
-              <Label htmlFor="duration">مدت</Label>
+              <Label htmlFor="duration">مدت (ماه)</Label>
               <Input
                 id="duration"
-                placeholder="۱ ماه"
+                dir="ltr"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="مثلاً ۶"
                 value={form.duration}
-                onChange={(e) => setForm({ ...form, duration: e.target.value })}
+                onChange={(e) => setForm({ ...form, duration: parseDigitInput(e.target.value) })}
               />
             </div>
             <div>
@@ -214,7 +218,7 @@ export default function AdminVouchersPage() {
                   {voucher.platform.name} — {formatPrice(voucher.amount)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {voucher.duration} — انقضا {formatDate(voucher.expiresAt)}
+                  {formatDurationMonths(voucher.duration)} — انقضا {formatDate(voucher.expiresAt)}
                 </p>
                 <p className="truncate text-xs text-muted-foreground" dir="ltr">
                   {voucher.code}

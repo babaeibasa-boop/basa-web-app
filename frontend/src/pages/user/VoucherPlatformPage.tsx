@@ -8,7 +8,7 @@ import { Badge, EmptyState, Skeleton } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate, formatPrice } from "@/lib/utils";
+import { formatDate, formatDurationMonths, formatPrice } from "@/lib/utils";
 import type { VoucherOffer } from "@/types";
 
 export default function VoucherPlatformPage() {
@@ -30,7 +30,6 @@ export default function VoucherPlatformPage() {
         platformSlug: slug!,
         amount: offer.amount,
         duration: offer.duration,
-        expiresAt: offer.expiresAt,
       });
       return voucherApi.payPurchase(purchase.data.id);
     },
@@ -76,7 +75,7 @@ export default function VoucherPlatformPage() {
         <img src={platform.logoUrl} alt="" className="h-12 w-12 rounded-lg object-contain" />
         <div>
           <h2 className="text-xl font-bold">{platform.name}</h2>
-          <p className="text-sm text-muted-foreground">واچرهای موجود را انتخاب کنید</p>
+          <p className="text-sm text-muted-foreground">ووچرهای موجود</p>
         </div>
       </div>
 
@@ -84,25 +83,25 @@ export default function VoucherPlatformPage() {
         <EmptyState title="واچری موجود نیست" description="در حال حاضر موجودی این پلتفرم به پایان رسیده است" />
       )}
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {offers.map((offer) => (
-          <Card key={`${offer.amount}-${offer.duration}-${offer.expiresAt}`}>
-            <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium">{formatPrice(offer.amount)}</p>
-                <p className="text-sm text-muted-foreground">مدت: {offer.duration}</p>
-                <p className="text-xs text-muted-foreground">انقضا: {formatDate(offer.expiresAt)}</p>
-              </div>
-              <div className="flex items-center justify-between gap-3 sm:justify-end">
+          <Card key={offer.duration}>
+            <CardContent className="flex flex-col gap-3 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-lg font-bold">{formatDurationMonths(offer.duration)}</p>
+                  <p className="text-sm text-muted-foreground">{formatPrice(offer.amount)}</p>
+                  <p className="text-xs text-muted-foreground">انقضا: {formatDate(offer.expiresAt)}</p>
+                </div>
                 <Badge variant="secondary">{offer.availableCount.toLocaleString("fa-IR")} عدد</Badge>
-                <Button
-                  size="sm"
-                  disabled={buyMutation.isPending}
-                  onClick={() => setSelected(offer)}
-                >
-                  خرید
-                </Button>
               </div>
+              <Button
+                size="sm"
+                disabled={buyMutation.isPending}
+                onClick={() => setSelected(offer)}
+              >
+                خرید
+              </Button>
             </CardContent>
           </Card>
         ))}
@@ -114,7 +113,7 @@ export default function VoucherPlatformPage() {
         title="تأیید خرید واچر"
         description={
           selected
-            ? `آیا از پرداخت ${formatPrice(selected.amount)} برای واچر ${platform.name} اطمینان دارید؟`
+            ? `آیا از پرداخت ${formatPrice(selected.amount)} برای واچر ${formatDurationMonths(selected.duration)} ${platform.name} اطمینان دارید؟`
             : ""
         }
         onConfirm={() => {

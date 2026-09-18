@@ -10,3 +10,15 @@ export function normalizeDigits(value: string): string {
 export function parseDigitString(value: string): string {
   return normalizeDigits(value).replace(/\D/g, "");
 }
+
+export const DURATION_MONTHS_PATTERN = /^[1-9]\d*$/;
+
+export function parseDurationMonths(value: string | number): string {
+  return parseDigitString(String(value));
+}
+
+export function formatDurationMonths(duration: string): string {
+  const months = parseDigitString(duration);
+  if (!DURATION_MONTHS_PATTERN.test(months)) return duration;
+  return `${Number(months).toLocaleString("fa-IR")} ماه`;
+}

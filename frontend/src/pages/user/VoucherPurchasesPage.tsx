@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge, EmptyState, Skeleton } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate, formatPrice, VOUCHER_PURCHASE_STATUS_LABELS } from "@/lib/utils";
+import { formatDate, formatDurationMonths, formatPrice, VOUCHER_PURCHASE_STATUS_LABELS } from "@/lib/utils";
 
 function statusVariant(status: string) {
   switch (status) {
@@ -81,7 +81,7 @@ export default function VoucherPurchasesPage() {
                   />
                   <div className="min-w-0">
                     <p className="truncate font-medium">{purchase.voucher.platform.name}</p>
-                    <p className="text-sm text-muted-foreground">{purchase.voucher.duration}</p>
+                    <p className="text-sm text-muted-foreground">{formatDurationMonths(purchase.voucher.duration)}</p>
                     <p className="text-xs text-muted-foreground">{formatDate(purchase.createdAt)}</p>
                   </div>
                 </div>

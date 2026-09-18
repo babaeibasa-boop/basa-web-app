@@ -47,7 +47,7 @@ export const voucherApi = {
   getPlatform: (slug: string) =>
     api.get<unknown, ApiResponse<VoucherPlatformDetail>>(`/vouchers/platforms/${encodeURIComponent(slug)}`),
   getPurchases: () => api.get<unknown, ApiResponse<VoucherPurchase[]>>("/vouchers/purchases"),
-  createPurchase: (data: { platformSlug: string; amount: string; duration: string; expiresAt: string }) =>
+  createPurchase: (data: { platformSlug: string; amount: string; duration: string }) =>
     api.post<unknown, ApiResponse<VoucherPurchase>>("/vouchers/purchases", data),
   payPurchase: (id: string) =>
     api.post<unknown, ApiResponse<{ payUrl: string }>>(`/vouchers/purchases/${id}/pay`),

@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { encrypt, decrypt } from "../lib/crypto.js";
 import { AppError } from "../lib/errors.js";
 import { logPayment } from "../lib/logger.js";
+import { DURATION_MONTHS_PATTERN, formatDurationMonths, parseDurationMonths } from "../lib/digits.js";
 import { walletService } from "./wallet.service.js";
 import { config } from "../lib/config.js";
 
@@ -14,7 +15,6 @@ export interface CreatePurchaseInput {
   platformSlug: string;
   amount: string;
   duration: string;
-  expiresAt: string;
 }
 
 export interface CreatePlatformInput {
@@ -59,8 +59,22 @@ export function walletCallbackUrlForPlatform(baseUrl: string, platformSlug: stri
   return url.toString();
 }
 
-function offerKey(amount: bigint, duration: string, expiresAt: Date) {
-  return `${amount.toString()}|${duration}|${expiresAt.toISOString()}`;
+function normalizeVoucherDuration(value: string) {
+  const duration = parseDurationMonths(value);
+  if (!DURATION_MONTHS_PATTERN.test(duration)) {
+    throw new AppError("مدت واچر باید تعداد ماه و فقط عدد باشد", 400);
+  }
+  return duration;
+}
+
+function canonicalDuration(value: string) {
+  const months = parseDurationMonths(value);
+  return DURATION_MONTHS_PATTERN.test(months) ? months : value.trim();
+}
+
+function durationSortValue(duration: string) {
+  const months = parseDurationMonths(duration);
+  return DURATION_MONTHS_PATTERN.test(months) ? Number(months) : Number.POSITIVE_INFINITY;
 }
 
 function serializePlatformPublic<T extends { id: string; name: string; slug: string; logoUrl: string }>(
@@ -97,21 +111,26 @@ export function groupAvailableOffers(
   >();
 
   for (const voucher of vouchers) {
-    const key = offerKey(voucher.amount, voucher.duration, voucher.expiresAt);
-    const existing = groups.get(key);
+    const duration = canonicalDuration(voucher.duration);
+    const existing = groups.get(duration);
     if (existing) {
       existing.availableCount += 1;
+      if (voucher.expiresAt.getTime() < Date.parse(existing.expiresAt)) {
+        existing.expiresAt = voucher.expiresAt.toISOString();
+      }
     } else {
-      groups.set(key, {
+      groups.set(duration, {
         amount: voucher.amount.toString(),
-        duration: voucher.duration,
+        duration,
         expiresAt: voucher.expiresAt.toISOString(),
         availableCount: 1,
       });
     }
   }
 
-  return Array.from(groups.values()).sort((a, b) => Number(a.amount) - Number(b.amount));
+  return Array.from(groups.values()).sort(
+    (a, b) => durationSortValue(a.duration) - durationSortValue(b.duration) || Number(a.amount) - Number(b.amount),
+  );
 }
 
 export async function listPlatforms() {
@@ -138,6 +157,7 @@ export async function getPlatformOffers(slug: string) {
       expiresAt: { gt: new Date() },
     },
     select: { amount: true, duration: true, expiresAt: true },
+    orderBy: { createdAt: "asc" },
   });
 
   return {
@@ -148,28 +168,22 @@ export async function getPlatformOffers(slug: string) {
 
 export async function createPurchase(userId: string, input: CreatePurchaseInput) {
   const amount = BigInt(input.amount);
-  const expiresAt = new Date(input.expiresAt);
-  if (Number.isNaN(expiresAt.getTime())) {
-    throw new AppError("تاریخ انقضا نامعتبر است", 400);
-  }
-  if (expiresAt.getTime() <= Date.now()) {
-    throw new AppError("این واچر منقضی شده است", 400);
-  }
+  const duration = normalizeVoucherDuration(input.duration);
 
   return prisma.$transaction(async (tx) => {
     const platform = await tx.voucherPlatform.findUnique({ where: { slug: input.platformSlug } });
     if (!platform) throw new AppError("پلتفرم یافت نشد", 404);
 
-    const candidate = await tx.voucher.findFirst({
+    const available = await tx.voucher.findMany({
       where: {
         platformId: platform.id,
         amount,
-        duration: input.duration,
-        expiresAt,
         status: VoucherStatus.AVAILABLE,
+        expiresAt: { gt: new Date() },
       },
       orderBy: { createdAt: "asc" },
     });
+    const candidate = available.find((voucher) => canonicalDuration(voucher.duration) === duration);
     if (!candidate) {
       throw new AppError("موجودی تمام شد", 409);
     }
@@ -232,7 +246,7 @@ export async function initiateVoucherPayment(purchaseId: string, userId: string)
           items: [
             {
               item_code: purchase.id,
-              item_title: `${purchase.voucher.platform.name} - ${purchase.voucher.duration}`,
+              item_title: `${purchase.voucher.platform.name} - ${formatDurationMonths(purchase.voucher.duration)}`,
               item_count: "1",
               unit_title: "عدد",
               item_total_amount: Number(purchase.amount),
@@ -530,7 +544,7 @@ export async function createVoucher(input: CreateVoucherInput) {
     data: {
       platformId: input.platformId,
       amount: BigInt(input.amount),
-      duration: input.duration.trim(),
+      duration: normalizeVoucherDuration(input.duration),
       expiresAt,
       encryptedCode: encrypt(input.code.trim()),
       status: VoucherStatus.AVAILABLE,

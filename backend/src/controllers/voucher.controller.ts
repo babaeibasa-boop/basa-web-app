@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
-import { parseDigitString } from "../lib/digits.js";
+import { DURATION_MONTHS_PATTERN, parseDigitString, parseDurationMonths } from "../lib/digits.js";
 import { sendSuccess } from "../lib/response.js";
 import {
   listPlatforms,
@@ -16,8 +16,10 @@ const createPurchaseSchema = z.object({
     (value) => (typeof value === "string" || typeof value === "number" ? parseDigitString(String(value)) : value),
     z.string().regex(/^\d+$/, "مبلغ باید عدد باشد"),
   ),
-  duration: z.string().min(1),
-  expiresAt: z.string().min(1),
+  duration: z.preprocess(
+    (value) => (typeof value === "string" || typeof value === "number" ? parseDurationMonths(value) : value),
+    z.string().regex(DURATION_MONTHS_PATTERN, "مدت باید تعداد ماه و فقط عدد باشد"),
+  ),
 });
 
 export async function listVoucherPlatforms(_req: Request, res: Response, next: NextFunction) {

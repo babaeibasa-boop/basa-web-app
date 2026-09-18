@@ -28,7 +28,7 @@ import {
   listVoucherSales,
 } from "../services/voucher.service.js";
 import { sendSuccess } from "../lib/response.js";
-import { parseDigitString } from "../lib/digits.js";
+import { DURATION_MONTHS_PATTERN, parseDigitString, parseDurationMonths } from "../lib/digits.js";
 
 const loginSchema = z.object({
   username: z.string().min(1),
@@ -75,7 +75,10 @@ const createVoucherSchema = z.object({
     (value) => (typeof value === "string" || typeof value === "number" ? parseDigitString(String(value)) : value),
     z.string().regex(/^\d+$/, "مبلغ باید عدد باشد"),
   ),
-  duration: z.string().min(1),
+  duration: z.preprocess(
+    (value) => (typeof value === "string" || typeof value === "number" ? parseDurationMonths(value) : value),
+    z.string().regex(DURATION_MONTHS_PATTERN, "مدت باید تعداد ماه و فقط عدد باشد"),
+  ),
   expiresAt: z.string().min(1),
   code: z.string().min(1),
 });
