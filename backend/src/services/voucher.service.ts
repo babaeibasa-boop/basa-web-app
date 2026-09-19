@@ -242,17 +242,36 @@ export async function createPurchase(userId: string, input: CreatePurchaseInput)
       throw new AppError("موجودی تمام شد", 409);
     }
 
-    const purchase = await tx.voucherPurchase.create({
-      data: {
-        userId,
-        voucherId: candidate.id,
-        amount: candidate.amount,
-        status: VoucherPurchaseStatus.PENDING_PAYMENT,
-      },
-      include: {
-        voucher: { include: { platform: true } },
-      },
+    const purchaseInclude = { voucher: { include: { platform: true } } } as const;
+    const existingPurchase = await tx.voucherPurchase.findUnique({
+      where: { voucherId: candidate.id },
     });
+    // Cancelled rows keep the unique voucherId, so a later reserve must reuse them.
+    if (existingPurchase && existingPurchase.status !== VoucherPurchaseStatus.CANCELLED) {
+      throw new AppError("موجودی تمام شد", 409);
+    }
+
+    const purchase = existingPurchase
+      ? await tx.voucherPurchase.update({
+          where: { id: existingPurchase.id },
+          data: {
+            userId,
+            amount: candidate.amount,
+            status: VoucherPurchaseStatus.PENDING_PAYMENT,
+            paymentTrackId: null,
+            paymentToken: null,
+          },
+          include: purchaseInclude,
+        })
+      : await tx.voucherPurchase.create({
+          data: {
+            userId,
+            voucherId: candidate.id,
+            amount: candidate.amount,
+            status: VoucherPurchaseStatus.PENDING_PAYMENT,
+          },
+          include: purchaseInclude,
+        });
 
     return serializeUserPurchase(purchase, { revealCode: false });
   });

@@ -20,6 +20,7 @@ const { prisma, walletService } = vi.hoisted(() => {
     },
     voucherPurchase: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -161,6 +162,7 @@ describe("createPurchase", () => {
 
   it("reserves stock and creates a pending purchase", async () => {
     prisma.voucher.updateMany.mockResolvedValue({ count: 1 });
+    prisma.voucherPurchase.findUnique.mockResolvedValue(null);
     prisma.voucherPurchase.create.mockResolvedValue({
       id: "pur1",
       amount: 10000n,
@@ -190,8 +192,51 @@ describe("createPurchase", () => {
       where: { id: "v1", status: VoucherStatus.AVAILABLE },
       data: { status: VoucherStatus.RESERVED },
     });
+    expect(prisma.voucherPurchase.create).toHaveBeenCalled();
     expect(result.status).toBe(VoucherPurchaseStatus.PENDING_PAYMENT);
     expect(result.voucher.code).toBeNull();
+  });
+
+  it("reuses a cancelled purchase for the same voucher", async () => {
+    prisma.voucher.updateMany.mockResolvedValue({ count: 1 });
+    prisma.voucherPurchase.findUnique.mockResolvedValue({
+      id: "pur-old",
+      userId: "user-0",
+      voucherId: "v1",
+      amount: 10000n,
+      status: VoucherPurchaseStatus.CANCELLED,
+      paymentTrackId: "track-old",
+      paymentToken: "token-old",
+    });
+    prisma.voucherPurchase.update.mockResolvedValue({
+      id: "pur-old",
+      amount: 10000n,
+      status: VoucherPurchaseStatus.PENDING_PAYMENT,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      voucher: voucherRecord({ status: VoucherStatus.RESERVED }),
+    });
+
+    const result = await createPurchase("user-1", {
+      platformSlug: "spotify",
+      amount: "10000",
+      duration: "1",
+    });
+
+    expect(prisma.voucherPurchase.create).not.toHaveBeenCalled();
+    expect(prisma.voucherPurchase.update).toHaveBeenCalledWith({
+      where: { id: "pur-old" },
+      data: {
+        userId: "user-1",
+        amount: 10000n,
+        status: VoucherPurchaseStatus.PENDING_PAYMENT,
+        paymentTrackId: null,
+        paymentToken: null,
+      },
+      include: { voucher: { include: { platform: true } } },
+    });
+    expect(result.id).toBe("pur-old");
+    expect(result.status).toBe(VoucherPurchaseStatus.PENDING_PAYMENT);
   });
 
   it("fails the second reservation when stock is already taken", async () => {
