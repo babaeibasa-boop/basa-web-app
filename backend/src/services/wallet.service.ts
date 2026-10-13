@@ -80,8 +80,6 @@ class WalletService {
   }
 
   async getUserInfo(ut: string, pwd?: string): Promise<WalletUserInfo> {
-    console.log("user_token", ut);
-    console.log("pwd", pwd);
     try {
       const { data } = await this.client.post<WalletResponse>(
         "",

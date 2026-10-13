@@ -21,7 +21,6 @@ async function resolvePlatformPwd(platformSlug?: string) {
 }
 
 export async function authenticateWithWalletToken(ut: string, platformSlug?: string) {
-  console.log("platformSlug", platformSlug);
   const pwd = await resolvePlatformPwd(platformSlug);
   const walletUser = await walletService.getUserInfo(ut, pwd);
 

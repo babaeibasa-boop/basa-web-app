@@ -6,7 +6,7 @@ export default defineConfig({
     environment: "node",
     env: {
       DATABASE_URL: "postgresql://user:password@localhost:5432/test",
-      FRONTEND_URL: "http://localhost:5173",
+      FRONTEND_URL: "https://bss.basa.ir",
       USER_JWT_SECRET: "test-user-jwt-secret-min-32-chars!",
       ADMIN_JWT_SECRET: "test-admin-jwt-secret-min-32-chars",
       ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",

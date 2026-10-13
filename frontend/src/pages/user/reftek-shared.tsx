@@ -66,14 +66,6 @@ export function ReftekAppGrid({ apps }: { apps: ReftekCatalogItem[] }) {
   const launchMutation = useMutation({
     mutationFn: (appId: string) => reftekApi.launchApp(appId),
     onMutate: (appId) => setLaunchingId(appId),
-    onSuccess: (response) => {
-      const url = response.data?.url;
-      if (!url) {
-        toast("آدرس اپلیکیشن دریافت نشد", "destructive");
-        return;
-      }
-      window.location.assign(url);
-    },
     onError: (err) => {
       toast((err as Error).message || "خطا در باز کردن اپلیکیشن", "destructive");
     },
@@ -85,7 +77,27 @@ export function ReftekAppGrid({ apps }: { apps: ReftekCatalogItem[] }) {
       navigate(`/voucher/${app.platformSlug}`);
       return;
     }
-    launchMutation.mutate(app.id);
+
+    const popup = window.open("about:blank", "_blank");
+    launchMutation.mutate(app.id, {
+      onSuccess: (response) => {
+        const url = response.data?.url;
+        if (!url) {
+          popup?.close();
+          toast("آدرس اپلیکیشن دریافت نشد", "destructive");
+          return;
+        }
+        if (!popup) {
+          window.open(url, "_blank", "noopener,noreferrer");
+          return;
+        }
+        popup.opener = null;
+        popup.location.href = url;
+      },
+      onError: () => {
+        popup?.close();
+      },
+    });
   }
 
   return (

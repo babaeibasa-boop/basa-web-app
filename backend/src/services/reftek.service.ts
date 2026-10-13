@@ -83,42 +83,39 @@ function extractLaunchUrl(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
   const body = payload as Record<string, unknown>;
 
-  if (typeof body.url === "string" && body.url) return body.url;
+  if (body.status !== "OK") return null;
+  if (!body.data || typeof body.data !== "object") return null;
 
-  if (body.data && typeof body.data === "object") {
-    const data = body.data as Record<string, unknown>;
-    if (typeof data.url === "string" && data.url) return data.url;
-    if (typeof data.launch_url === "string" && data.launch_url) return data.launch_url;
-    if (typeof data.launchUrl === "string" && data.launchUrl) return data.launchUrl;
+  const data = body.data as Record<string, unknown>;
+  if (typeof data.app_user_url === "string" && data.app_user_url) {
+    return data.app_user_url;
   }
-
-  if (typeof body.launch_url === "string" && body.launch_url) return body.launch_url;
-  if (typeof body.launchUrl === "string" && body.launchUrl) return body.launchUrl;
 
   return null;
 }
 
 async function resolveDynamicUrl(app: ReftekAppDefinition, userId: string): Promise<string> {
-  if (!app.resolveUrl) {
-    throw new AppError("آدرس پویا برای این اپلیکیشن پیکربندی نشده است", 500);
-  }
-
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) {
     throw new AppError("کاربر یافت نشد", 401);
   }
 
   try {
+
     const { data } = await axios.post(
-      app.resolveUrl,
+      `${process.env.WEB_APP_API_BASE_URL}`,
       {
-        app_id: app.appId,
-        user_id: user.walletId,
-        phone: user.phone,
-      },
+        data: {
+          app_id: app.webAppId,
+          user_id: `${user.walletId}`
+        },
+        api_version: 1,
+        method: "getWebAppUrl"
+      }
+      ,
       {
         headers: {
-          Authorization: `Bearer ${user.walletToken}`,
+          "PWD": `${process.env.WEB_APP_API_TOKEN}`,
           "Content-Type": "application/json",
         },
         timeout: 15000,
@@ -138,14 +135,6 @@ async function resolveDynamicUrl(app: ReftekAppDefinition, userId: string): Prom
 
 export async function launchReftekApp(appId: string, userId: string): Promise<{ url: string }> {
   const app = findApp(appId);
-
-  if (app.linkType === "static") {
-    if (!app.url) {
-      throw new AppError("آدرس ثابت برای این اپلیکیشن پیکربندی نشده است", 500);
-    }
-    return { url: app.url };
-  }
-
   const url = await resolveDynamicUrl(app, userId);
   return { url };
 }
