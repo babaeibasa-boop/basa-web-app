@@ -14,6 +14,8 @@ import ReftekPage from "@/pages/user/ReftekPage";
 import ReftekCategoryPage from "@/pages/user/ReftekCategoryPage";
 import VoucherPlatformPage from "@/pages/user/VoucherPlatformPage";
 import VoucherPurchasesPage from "@/pages/user/VoucherPurchasesPage";
+import CreditsPage from "@/pages/credits/CreditsPage";
+import CreditPlatformPage from "@/pages/credits/CreditPlatformPage";
 
 const AdminLoginPage = lazy(() => import("@/pages/admin/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("@/pages/admin/AdminDashboardPage"));
@@ -25,6 +27,7 @@ const AdminVoucherPlatformsPage = lazy(() => import("@/pages/admin/AdminVoucherP
 const AdminCategoriesPage = lazy(() => import("@/pages/admin/AdminCategoriesPage"));
 const AdminVouchersPage = lazy(() => import("@/pages/admin/AdminVouchersPage"));
 const AdminVoucherSalesPage = lazy(() => import("@/pages/admin/AdminVoucherSalesPage"));
+const AdminCreditPlatformsPage = lazy(() => import("@/pages/admin/AdminCreditPlatformsPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -84,6 +87,8 @@ export default function App() {
                   <Route path="/voucher/purchases" element={<Navigate to="/reftek" replace />} />
                   <Route path="/voucher/:slug/purchases" element={<UserGuard><VoucherPurchasesPage /></UserGuard>} />
                   <Route path="/voucher/:slug" element={<UserGuard><VoucherPlatformPage /></UserGuard>} />
+                  <Route path="/credits" element={<UserGuard><CreditsPage /></UserGuard>} />
+                  <Route path="/credits/:slug" element={<UserGuard><CreditPlatformPage /></UserGuard>} />
                   <Route path="/payment/result" element={<UserGuard><PaymentResultPage /></UserGuard>} />
                   <Route path="/admin/login" element={<AdminLoginPage />} />
                   <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />
@@ -95,6 +100,7 @@ export default function App() {
                   <Route path="/admin/voucher-platforms" element={<AdminGuard><AdminVoucherPlatformsPage /></AdminGuard>} />
                   <Route path="/admin/vouchers" element={<AdminGuard><AdminVouchersPage /></AdminGuard>} />
                   <Route path="/admin/voucher-sales" element={<AdminGuard><AdminVoucherSalesPage /></AdminGuard>} />
+                  <Route path="/admin/credit-platforms" element={<AdminGuard><AdminCreditPlatformsPage /></AdminGuard>} />
                   {!isProduction && (
                     <>
                       <Route path="/orders" element={<UserGuard><OrdersPage /></UserGuard>} />

@@ -80,7 +80,7 @@ export const VOUCHER_PURCHASE_STATUS_LABELS: Record<string, string> = {
   CANCELLED: "لغو شده",
 };
 
-const ALLOWED_REDIRECT_PREFIXES = ["/voucher", "/reftek", "/orders", "/payment"];
+const ALLOWED_REDIRECT_PREFIXES = ["/voucher", "/reftek", "/orders", "/payment", "/credits"];
 
 export function voucherPlatformSlugFromPath(pathname: string): string | null {
   const path = pathname.split("?")[0] ?? pathname;

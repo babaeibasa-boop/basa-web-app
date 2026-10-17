@@ -165,3 +165,102 @@ export interface VoucherSale {
     platform: VoucherPlatform;
   };
 }
+
+export type CreditFeatureMode = "API" | "REDIRECT" | "DISABLED";
+
+export interface CreditBalance {
+  available: number;
+  total?: number;
+  currency: string;
+  expiresAt?: string | null;
+}
+
+export interface CreditPlatformSummary {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string;
+  installmentsMode: CreditFeatureMode;
+  installmentsUrl: string | null;
+  merchantsMode: CreditFeatureMode;
+  merchantsUrl: string | null;
+  hasLaunch: boolean;
+  instructions: string;
+  sortOrder: number;
+  balance: CreditBalance | null;
+  error: string | null;
+}
+
+export interface CreditPlatformDetail {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string;
+  installmentsMode: CreditFeatureMode;
+  installmentsUrl: string | null;
+  merchantsMode: CreditFeatureMode;
+  merchantsUrl: string | null;
+  hasLaunch: boolean;
+  instructions: string;
+  sortOrder: number;
+}
+
+export interface CreditTransaction {
+  id: string;
+  amount: number;
+  type: "PURCHASE" | "REFUND" | "CHARGE" | "INSTALLMENT_PAYMENT" | "OTHER";
+  status: "SUCCESS" | "PENDING" | "FAILED";
+  description: string | null;
+  occurredAt: string;
+  merchantName?: string | null;
+}
+
+export interface CreditInstallment {
+  id: string;
+  amount: number;
+  dueAt: string;
+  status: "PAID" | "DUE" | "OVERDUE" | "UPCOMING";
+  label?: string | null;
+}
+
+export interface CreditMerchant {
+  id: string;
+  name: string;
+  logoUrl?: string | null;
+  category?: string | null;
+  url?: string | null;
+}
+
+export interface CreditCursorPage<T> {
+  items: T[];
+  nextCursor?: string | null;
+}
+
+export interface CreditAdapterInfo {
+  key: string;
+  label: string;
+  capabilities: {
+    installments: boolean;
+    merchants: boolean;
+    launch: boolean;
+  };
+}
+
+export interface AdminCreditPlatform {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string;
+  adapterKey: string;
+  hasConfig: boolean;
+  installmentsMode: CreditFeatureMode;
+  installmentsUrl: string | null;
+  merchantsMode: CreditFeatureMode;
+  merchantsUrl: string | null;
+  launchUrl: string | null;
+  instructions: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}

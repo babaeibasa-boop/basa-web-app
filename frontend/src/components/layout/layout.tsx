@@ -1,5 +1,5 @@
 import { Link, useLocation, useParams } from "react-router-dom";
-import { Moon, Sun, Plus, Package, AppWindow, User, Ticket } from "lucide-react";
+import { Moon, Sun, Plus, Package, AppWindow, User, Ticket, WalletCards } from "lucide-react";
 import { useAuth, useAdminAuth, useTheme } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -160,6 +160,44 @@ export function VoucherLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+export function CreditsLayout({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const displayName = user ? `${user.name} ${user.family}`.trim() : null;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <WalletCards className="h-5 w-5 text-primary" />
+            <h1 className="text-base font-bold">اعتبار پلتفرم‌ها</h1>
+          </div>
+          <div className="flex min-w-0 items-center gap-2">
+            {displayName && (
+              <>
+                <span className="truncate text-sm text-muted-foreground">{displayName}</span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <User className="h-4 w-4" />
+                </span>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "حالت روشن" : "حالت تاریک"}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
+    </div>
+  );
+}
+
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { admin, logout } = useAdminAuth();
   const { theme, toggleTheme } = useTheme();
@@ -173,6 +211,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { to: "/admin/voucher-platforms", label: "پلتفرم ووچر" },
     { to: "/admin/vouchers", label: "ووچرها" },
     { to: "/admin/voucher-sales", label: "فروش ووچر" },
+    { to: "/admin/credit-platforms", label: "پلتفرم اعتبار" },
     { to: "/admin/settings", label: "تنظیمات" },
   ];
 

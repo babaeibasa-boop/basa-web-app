@@ -15,6 +15,16 @@ import type {
   VoucherSale,
   AdminSettings,
   VoucherImportResult,
+  CreditPlatformSummary,
+  CreditPlatformDetail,
+  CreditBalance,
+  CreditTransaction,
+  CreditInstallment,
+  CreditMerchant,
+  CreditCursorPage,
+  CreditAdapterInfo,
+  AdminCreditPlatform,
+  CreditFeatureMode,
 } from "@/types";
 
 export const authApi = {
@@ -62,6 +72,34 @@ export const reftekApi = {
   getApps: () => api.get<unknown, ApiResponse<ReftekCatalogItem[]>>("/reftek/apps"),
   launchApp: (appId: string) =>
     api.get<unknown, ApiResponse<{ url: string }>>(`/reftek/apps/${encodeURIComponent(appId)}/launch`),
+};
+
+export const creditApi = {
+  getPlatforms: () => api.get<unknown, ApiResponse<CreditPlatformSummary[]>>("/credits/platforms"),
+  getPlatform: (slug: string) =>
+    api.get<unknown, ApiResponse<CreditPlatformDetail>>(`/credits/platforms/${encodeURIComponent(slug)}`),
+  getBalance: (slug: string) =>
+    api.get<unknown, ApiResponse<CreditBalance>>(`/credits/platforms/${encodeURIComponent(slug)}/balance`),
+  getTransactions: (slug: string, cursor?: string) =>
+    api.get<unknown, ApiResponse<CreditCursorPage<CreditTransaction>>>(
+      `/credits/platforms/${encodeURIComponent(slug)}/transactions`,
+      { params: cursor ? { cursor } : undefined },
+    ),
+  getInstallments: (slug: string) =>
+    api.get<
+      unknown,
+      ApiResponse<{ mode: "api"; items: CreditInstallment[] } | { mode: "redirect"; url: string }>
+    >(`/credits/platforms/${encodeURIComponent(slug)}/installments`),
+  getMerchants: (slug: string, params?: { cursor?: string; q?: string }) =>
+    api.get<
+      unknown,
+      ApiResponse<
+        | ({ mode: "api" } & CreditCursorPage<CreditMerchant>)
+        | { mode: "redirect"; url: string }
+      >
+    >(`/credits/platforms/${encodeURIComponent(slug)}/merchants`, { params }),
+  launch: (slug: string) =>
+    api.get<unknown, ApiResponse<{ url: string }>>(`/credits/platforms/${encodeURIComponent(slug)}/launch`),
 };
 
 export const adminApi = {
@@ -118,4 +156,41 @@ export const adminApi = {
   getSettings: () => api.get<unknown, ApiResponse<AdminSettings>>("/admin/settings"),
   updateSettings: (data: { hideVouchersExpiringSoon: boolean }) =>
     api.patch<unknown, ApiResponse<AdminSettings>>("/admin/settings", data),
+  getCreditAdapters: () => api.get<unknown, ApiResponse<CreditAdapterInfo[]>>("/admin/credit-adapters"),
+  getCreditPlatforms: () => api.get<unknown, ApiResponse<AdminCreditPlatform[]>>("/admin/credit-platforms"),
+  createCreditPlatform: (data: {
+    name: string;
+    slug: string;
+    logoUrl: string;
+    adapterKey: string;
+    config?: unknown;
+    installmentsMode?: CreditFeatureMode;
+    installmentsUrl?: string | null;
+    merchantsMode?: CreditFeatureMode;
+    merchantsUrl?: string | null;
+    launchUrl?: string | null;
+    instructions?: string;
+    isActive?: boolean;
+    sortOrder?: number;
+  }) => api.post<unknown, ApiResponse<AdminCreditPlatform>>("/admin/credit-platforms", data),
+  updateCreditPlatform: (
+    id: string,
+    data: {
+      name?: string;
+      slug?: string;
+      logoUrl?: string;
+      adapterKey?: string;
+      config?: unknown;
+      installmentsMode?: CreditFeatureMode;
+      installmentsUrl?: string | null;
+      merchantsMode?: CreditFeatureMode;
+      merchantsUrl?: string | null;
+      launchUrl?: string | null;
+      instructions?: string;
+      isActive?: boolean;
+      sortOrder?: number;
+    },
+  ) => api.patch<unknown, ApiResponse<AdminCreditPlatform>>(`/admin/credit-platforms/${encodeURIComponent(id)}`, data),
+  deleteCreditPlatform: (id: string) =>
+    api.delete<unknown, ApiResponse<null>>(`/admin/credit-platforms/${id}`),
 };
