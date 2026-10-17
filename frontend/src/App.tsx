@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, AdminAuthProvider, useAuth, useAdminAuth } from "@/hooks/use-auth";
 import { ToastProvider } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/badge";
+import { isReftekAccessAllowed } from "@/lib/reftek-access";
 import { splashLoginSearch, voucherPlatformSlugFromPath } from "@/lib/utils";
 import SplashPage from "@/pages/user/SplashPage";
 import OrdersPage from "@/pages/user/OrdersPage";
@@ -49,6 +50,14 @@ function UserGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function ReftekAccessGuard({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (!isReftekAccessAllowed(user?.phone)) {
+    return <Navigate to="/reftek" replace />;
+  }
+  return <>{children}</>;
+}
+
 function AdminGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAdminAuth();
   if (!isAuthenticated) return <Navigate to="/admin/login" replace />;
@@ -82,8 +91,26 @@ export default function App() {
                   <Route path="/reftek/category/:category" element={<UserGuard><ReftekCategoryPage /></UserGuard>} />
                   <Route path="/voucher" element={<Navigate to="/reftek" replace />} />
                   <Route path="/voucher/purchases" element={<Navigate to="/reftek" replace />} />
-                  <Route path="/voucher/:slug/purchases" element={<UserGuard><VoucherPurchasesPage /></UserGuard>} />
-                  <Route path="/voucher/:slug" element={<UserGuard><VoucherPlatformPage /></UserGuard>} />
+                  <Route
+                    path="/voucher/:slug/purchases"
+                    element={
+                      <UserGuard>
+                        <ReftekAccessGuard>
+                          <VoucherPurchasesPage />
+                        </ReftekAccessGuard>
+                      </UserGuard>
+                    }
+                  />
+                  <Route
+                    path="/voucher/:slug"
+                    element={
+                      <UserGuard>
+                        <ReftekAccessGuard>
+                          <VoucherPlatformPage />
+                        </ReftekAccessGuard>
+                      </UserGuard>
+                    }
+                  />
                   <Route path="/payment/result" element={<UserGuard><PaymentResultPage /></UserGuard>} />
                   <Route path="/admin/login" element={<AdminLoginPage />} />
                   <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />

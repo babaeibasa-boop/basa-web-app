@@ -10,6 +10,7 @@ import {
   isVoucherExpired,
   parseVoucherExpiresAt,
 } from "../lib/voucher-expiry.js";
+import { assertReftekAccess } from "../lib/reftek-access.js";
 import { assertSlug } from "../lib/slug.js";
 import { walletService } from "./wallet.service.js";
 import { isHideVouchersExpiringSoonEnabled } from "./settings.service.js";
@@ -179,7 +180,9 @@ export function groupAvailableOffers(
   );
 }
 
-export async function getPlatformOffers(slug: string) {
+export async function getPlatformOffers(slug: string, userId: string) {
+  await assertReftekAccess(userId);
+
   const platform = await prisma.voucherPlatform.findUnique({
     where: { slug },
     select: {
@@ -212,6 +215,8 @@ export async function getPlatformOffers(slug: string) {
 }
 
 export async function createPurchase(userId: string, input: CreatePurchaseInput) {
+  await assertReftekAccess(userId);
+
   const amount = BigInt(input.amount);
   const duration = normalizeVoucherDuration(input.duration);
   const hideExpiringSoon = await isHideVouchersExpiringSoonEnabled();
@@ -278,6 +283,8 @@ export async function createPurchase(userId: string, input: CreatePurchaseInput)
 }
 
 export async function initiateVoucherPayment(purchaseId: string, userId: string) {
+  await assertReftekAccess(userId);
+
   const purchase = await prisma.voucherPurchase.findFirst({
     where: { id: purchaseId, userId },
     include: {
@@ -348,6 +355,8 @@ export async function initiateVoucherPayment(purchaseId: string, userId: string)
 }
 
 export async function getUserPurchases(userId: string, platformSlug?: string) {
+  await assertReftekAccess(userId);
+
   const purchases = await prisma.voucherPurchase.findMany({
     where: {
       userId,

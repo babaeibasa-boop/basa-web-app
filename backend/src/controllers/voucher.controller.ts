@@ -23,7 +23,7 @@ const createPurchaseSchema = z.object({
 
 export async function getVoucherPlatform(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await getPlatformOffers(String(req.params.slug));
+    const result = await getPlatformOffers(String(req.params.slug), req.user!.userId);
     sendSuccess(res, result);
   } catch (error) {
     next(error);

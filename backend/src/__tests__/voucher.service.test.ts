@@ -30,6 +30,9 @@ const { prisma, walletService } = vi.hoisted(() => {
       findUnique: vi.fn(),
       upsert: vi.fn(),
     },
+    user: {
+      findUnique: vi.fn(),
+    },
     $transaction: vi.fn(),
   };
   const walletService = {
@@ -155,6 +158,7 @@ describe("groupAvailableOffers", () => {
 describe("createPurchase", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.user.findUnique.mockResolvedValue({ phone: "989381333551" });
     prisma.$transaction.mockImplementation(async (fn: (tx: typeof prisma) => unknown) => fn(prisma));
     prisma.voucherPlatform.findUnique.mockResolvedValue(platform);
     prisma.voucher.findMany.mockResolvedValue([voucherRecord()]);
@@ -253,6 +257,10 @@ describe("createPurchase", () => {
 });
 
 describe("getUserPurchases", () => {
+  beforeEach(() => {
+    prisma.user.findUnique.mockResolvedValue({ phone: "989381333551" });
+  });
+
   it("hides the code until the purchase is paid", async () => {
     prisma.voucherPurchase.findMany.mockResolvedValue([
       {
@@ -297,6 +305,10 @@ describe("getUserPurchases", () => {
 });
 
 describe("initiateVoucherPayment", () => {
+  beforeEach(() => {
+    prisma.user.findUnique.mockResolvedValue({ phone: "989381333551" });
+  });
+
   it("requests payment with the platform PWD", async () => {
     prisma.voucherPurchase.findFirst.mockResolvedValue({
       id: "pur1",
@@ -398,6 +410,7 @@ describe("verifyVoucherPayment", () => {
 
 describe("normalize voucher duration", () => {
   it("rejects non-numeric duration on purchase", async () => {
+    prisma.user.findUnique.mockResolvedValue({ phone: "989381333551" });
     await expect(
       createPurchase("user-1", {
         platformSlug: "spotify",
@@ -469,6 +482,7 @@ describe("importVouchers", () => {
 describe("getPlatformOffers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.user.findUnique.mockResolvedValue({ phone: "989381333551" });
     prisma.voucherPlatform.findUnique.mockResolvedValue(platform);
     prisma.voucherPurchase.findMany.mockResolvedValue([]);
   });
@@ -477,7 +491,7 @@ describe("getPlatformOffers", () => {
     prisma.appSetting.findUnique.mockResolvedValue({ value: "true" });
     prisma.voucher.findMany.mockResolvedValue([]);
 
-    await getPlatformOffers("spotify");
+    await getPlatformOffers("spotify", "user-1");
 
     expect(prisma.voucher.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -495,7 +509,7 @@ describe("getPlatformOffers", () => {
     prisma.appSetting.findUnique.mockResolvedValue({ value: "false" });
     prisma.voucher.findMany.mockResolvedValue([{ amount: 10000n, duration: "6", expiresAt: null }]);
 
-    const result = await getPlatformOffers("spotify");
+    const result = await getPlatformOffers("spotify", "user-1");
 
     const cutoff = (prisma.voucher.findMany.mock.calls[0][0] as { where: { OR: { expiresAt?: { gt: Date } }[] } })
       .where.OR[1]?.expiresAt?.gt as Date;
@@ -506,6 +520,7 @@ describe("getPlatformOffers", () => {
 
 describe("release without expiry", () => {
   it("returns a reserved no-expiry voucher to available stock", async () => {
+    prisma.user.findUnique.mockResolvedValue({ phone: "989381333551" });
     prisma.voucherPurchase.findFirst.mockResolvedValue({
       id: "pur1",
       userId: "user-1",

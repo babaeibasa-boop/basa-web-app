@@ -14,7 +14,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { reftekApi } from "@/api";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { isReftekAccessAllowed } from "@/lib/reftek-access";
 import { cn } from "@/lib/utils";
 import type { ReftekCatalogItem } from "@/types";
 
@@ -60,8 +62,10 @@ export function groupByCategory(apps: ReftekCatalogItem[]) {
 
 export function ReftekAppGrid({ apps }: { apps: ReftekCatalogItem[] }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [launchingId, setLaunchingId] = useState<string | null>(null);
+  const canOpen = isReftekAccessAllowed(user?.phone);
 
   const launchMutation = useMutation({
     mutationFn: (appId: string) => reftekApi.launchApp(appId),
@@ -73,6 +77,11 @@ export function ReftekAppGrid({ apps }: { apps: ReftekCatalogItem[] }) {
   });
 
   function openItem(app: ReftekCatalogItem) {
+    if (!canOpen) {
+      toast("این سرویس هنوز برای شما فعال نشده است", "destructive");
+      return;
+    }
+
     if (app.kind === "voucher" && app.platformSlug) {
       navigate(`/voucher/${app.platformSlug}`);
       return;
@@ -111,10 +120,11 @@ export function ReftekAppGrid({ apps }: { apps: ReftekCatalogItem[] }) {
             disabled={launchMutation.isPending}
             onClick={() => openItem(app)}
             className={cn(
-              "group flex cursor-pointer flex-col items-center gap-2 rounded-xl border bg-card p-4 text-center shadow-sm transition-all duration-200 ease-out",
-              "hover:-translate-y-1 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10",
+              "group flex flex-col items-center gap-2 rounded-xl border bg-card p-4 text-center shadow-sm transition-all duration-200 ease-out",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-              "hover:bg-accent/40",
+              canOpen
+                ? "cursor-pointer hover:-translate-y-1 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10 hover:bg-accent/40"
+                : "cursor-default opacity-80",
               busy && "border-primary/40 bg-primary/5",
             )}
           >

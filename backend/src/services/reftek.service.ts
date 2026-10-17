@@ -1,6 +1,7 @@
 import axios from "axios";
 import { REFTEK_APPS, type ReftekAppDefinition } from "../data/reftek-apps.js";
 import { AppError } from "../lib/errors.js";
+import { assertReftekAccess } from "../lib/reftek-access.js";
 import { logger } from "../lib/logger.js";
 import { prisma } from "../lib/prisma.js";
 
@@ -134,6 +135,7 @@ async function resolveDynamicUrl(app: ReftekAppDefinition, userId: string): Prom
 }
 
 export async function launchReftekApp(appId: string, userId: string): Promise<{ url: string }> {
+  await assertReftekAccess(userId);
   const app = findApp(appId);
   const url = await resolveDynamicUrl(app, userId);
   return { url };
