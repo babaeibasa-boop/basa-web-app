@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { OrderStatus, VoucherStatus } from "@prisma/client";
+import { CreditFeatureMode, OrderStatus, VoucherStatus } from "@prisma/client";
 import { z } from "zod";
 import {
   searchOrders,
@@ -35,6 +35,13 @@ import {
   deleteCategory,
 } from "../services/category.service.js";
 import { getAdminSettings, updateAdminSettings } from "../services/settings.service.js";
+import {
+  createCreditPlatform,
+  deleteCreditPlatform,
+  listAdminCreditPlatforms,
+  listAvailableCreditAdapters,
+  updateCreditPlatform,
+} from "../services/credit/credit.service.js";
 import { sendSuccess } from "../lib/response.js";
 import { DURATION_MONTHS_PATTERN, parseDigitString, parseDurationMonths } from "../lib/digits.js";
 
@@ -369,6 +376,86 @@ export async function removeCategory(req: Request, res: Response, next: NextFunc
   try {
     await deleteCategory(String(req.params.id));
     sendSuccess(res, null, "دسته‌بندی حذف شد");
+  } catch (error) {
+    next(error);
+  }
+}
+
+const featureModeSchema = z.nativeEnum(CreditFeatureMode);
+
+const createCreditPlatformSchema = z.object({
+  name: z.string().min(1),
+  slug: slugSchema,
+  logoUrl: z.string().min(1),
+  adapterKey: z.string().min(1),
+  config: z.unknown().optional().default({}),
+  installmentsMode: featureModeSchema.optional(),
+  installmentsUrl: z.string().nullable().optional(),
+  merchantsMode: featureModeSchema.optional(),
+  merchantsUrl: z.string().nullable().optional(),
+  launchUrl: z.string().nullable().optional(),
+  instructions: z.string().optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+const updateCreditPlatformSchema = z.object({
+  name: z.string().min(1).optional(),
+  slug: slugSchema.optional(),
+  logoUrl: z.string().min(1).optional(),
+  adapterKey: z.string().min(1).optional(),
+  config: z.unknown().optional(),
+  installmentsMode: featureModeSchema.optional(),
+  installmentsUrl: z.string().nullable().optional(),
+  merchantsMode: featureModeSchema.optional(),
+  merchantsUrl: z.string().nullable().optional(),
+  launchUrl: z.string().nullable().optional(),
+  instructions: z.string().optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+export async function creditAdapters(_req: Request, res: Response, next: NextFunction) {
+  try {
+    sendSuccess(res, listAvailableCreditAdapters());
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function creditPlatforms(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const platforms = await listAdminCreditPlatforms();
+    sendSuccess(res, platforms);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function addCreditPlatform(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = createCreditPlatformSchema.parse(req.body);
+    const platform = await createCreditPlatform(input);
+    sendSuccess(res, platform, "پلتفرم اعتبار اضافه شد", 201);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function patchCreditPlatform(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = updateCreditPlatformSchema.parse(req.body);
+    const platform = await updateCreditPlatform(String(req.params.id), input);
+    sendSuccess(res, platform, "پلتفرم اعتبار بروزرسانی شد");
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function removeCreditPlatform(req: Request, res: Response, next: NextFunction) {
+  try {
+    await deleteCreditPlatform(String(req.params.id));
+    sendSuccess(res, null, "پلتفرم اعتبار حذف شد");
   } catch (error) {
     next(error);
   }
