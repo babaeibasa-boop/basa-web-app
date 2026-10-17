@@ -19,6 +19,9 @@ export interface WalletUserInfo {
   name: string;
   family: string;
   phone: string;
+  /** Present on some wallet tenants; used by credit providers such as Barook. */
+  national_code?: string;
+  nationalCode?: string;
 }
 
 export interface InvoiceItem {
@@ -95,7 +98,16 @@ class WalletService {
       if (data.status !== "OK" || !(data.data) || data.data.status !== "Done") {
         throw new AppError("خطا در احراز هویت کیف پول", 401);
       }
-      return data.data.user_data;
+      const userData = data.data.user_data as WalletUserInfo & Record<string, unknown>;
+      const nationalCode =
+        (typeof userData.national_code === "string" && userData.national_code) ||
+        (typeof userData.nationalCode === "string" && userData.nationalCode) ||
+        (typeof userData.nid === "string" && userData.nid) ||
+        undefined;
+      return {
+        ...userData,
+        ...(nationalCode ? { national_code: nationalCode, nationalCode } : {}),
+      };
     } catch (error) {
       logWalletError("getUserInfo failed", { error: String(error) });
       throw new AppError("خطا در احراز هویت کیف پول", 401);

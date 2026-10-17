@@ -23,6 +23,7 @@ async function resolvePlatformPwd(platformSlug?: string) {
 export async function authenticateWithWalletToken(ut: string, platformSlug?: string) {
   const pwd = await resolvePlatformPwd(platformSlug);
   const walletUser = await walletService.getUserInfo(ut, pwd);
+  const nationalCode = walletUser.national_code || walletUser.nationalCode || undefined;
 
   const user = await prisma.user.upsert({
     where: { walletId: walletUser.user_id },
@@ -31,6 +32,7 @@ export async function authenticateWithWalletToken(ut: string, platformSlug?: str
       family: walletUser.family,
       phone: walletUser.phone,
       walletToken: ut,
+      ...(nationalCode ? { nationalCode } : {}),
     },
     create: {
       walletId: walletUser.user_id,
@@ -38,6 +40,7 @@ export async function authenticateWithWalletToken(ut: string, platformSlug?: str
       family: walletUser.family,
       phone: walletUser.phone,
       walletToken: ut,
+      ...(nationalCode ? { nationalCode } : {}),
     },
   });
 
