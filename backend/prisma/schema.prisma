@@ -28,19 +28,21 @@ enum InvoiceStatus {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  walletId    String   @unique
-  phone       String   @unique
-  name        String
-  family      String
-  walletToken String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  walletId     String   @unique
+  phone        String   @unique
+  name         String
+  family       String
+  nationalCode String?
+  walletToken  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   orders           Order[]
   voucherPurchases VoucherPurchase[]
 
   @@index([phone])
+  @@index([nationalCode])
   @@map("users")
 }
 
@@ -196,4 +198,32 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 
   @@map("app_settings")
+}
+
+enum CreditFeatureMode {
+  API
+  REDIRECT
+  DISABLED
+}
+
+model CreditPlatform {
+  id               String            @id @default(cuid())
+  name             String
+  slug             String            @unique
+  logoUrl          String
+  adapterKey       String
+  encryptedConfig  String
+  installmentsMode CreditFeatureMode @default(DISABLED)
+  installmentsUrl  String?
+  merchantsMode    CreditFeatureMode @default(DISABLED)
+  merchantsUrl     String?
+  launchUrl        String?
+  instructions     String            @default("")
+  isActive         Boolean           @default(true)
+  sortOrder        Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("credit_platforms")
 }
