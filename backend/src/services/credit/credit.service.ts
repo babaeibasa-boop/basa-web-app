@@ -288,7 +288,11 @@ export async function listCreditPlatformsWithBalances(userId: string) {
     let error = "خطا در دریافت موجودی";
     if (reason instanceof CreditAdapterError) {
       if (reason.code === "USER_NOT_FOUND") {
-        error = "اعتباری برای این کاربر یافت نشد";
+        // Prefer provider message when it is already user-facing Persian text.
+        error =
+          /[آ-ی]/.test(reason.message) && reason.message.length < 200
+            ? reason.message
+            : "اعتباری برای این کاربر یافت نشد";
       } else if (reason.code === "UNAUTHORIZED") {
         error = "احراز هویت پلتفرم ناموفق بود";
       } else if (reason.code === "UNAVAILABLE") {

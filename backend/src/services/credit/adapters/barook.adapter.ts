@@ -122,6 +122,7 @@ function mapAxiosError(error: unknown, step = "barook.axios"): never {
   const ax = error as AxiosError<{ message?: string; title?: string; detail?: string }>;
   const status = ax.response?.status;
   const body = ax.response?.data;
+  const title = typeof body === "object" && body && typeof body.title === "string" ? body.title : "";
   const detail =
     (typeof body === "object" && body && (body.message || body.title || body.detail)) ||
     ax.message;
@@ -129,6 +130,7 @@ function mapAxiosError(error: unknown, step = "barook.axios"): never {
   logCreditError("Barook HTTP error", {
     step,
     status,
+    title: title || undefined,
     detail: String(detail || ""),
     url: ax.config?.url,
     method: ax.config?.method,
@@ -141,8 +143,18 @@ function mapAxiosError(error: unknown, step = "barook.axios"): never {
   if (status === 401 || status === 403) {
     throw new CreditAdapterError("UNAUTHORIZED", String(detail || "Unauthorized"), 502);
   }
-  if (status === 404) {
-    throw new CreditAdapterError("USER_NOT_FOUND", String(detail || "Not found"), 404);
+  // Barook returns 422 UserOrganizationException when nationalCode is not in the org.
+  if (
+    status === 404 ||
+    status === 422 ||
+    title === "UserOrganizationException" ||
+    /وجود ندارد|یافت نشد|not found|userorganization/i.test(String(detail || ""))
+  ) {
+    throw new CreditAdapterError(
+      "USER_NOT_FOUND",
+      String(detail || "کاربر در این سازمان یافت نشد"),
+      404,
+    );
   }
   if (
     ax.code === "ECONNABORTED" ||
