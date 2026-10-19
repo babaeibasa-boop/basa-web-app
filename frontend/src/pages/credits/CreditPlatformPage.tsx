@@ -1,7 +1,16 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
-import { ExternalLink } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  CalendarClock,
+  ExternalLink,
+  Receipt,
+  Search,
+  Sparkles,
+  Store,
+} from "lucide-react";
 import { creditApi } from "@/api";
 import { CreditsLayout } from "@/components/layout/layout";
 import { MarkdownContent } from "@/components/credits/markdown";
@@ -11,6 +20,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn, formatDate, formatPrice } from "@/lib/utils";
+
+const TAB_ICONS = {
+  transactions: Receipt,
+  installments: CalendarClock,
+  merchants: Store,
+  instructions: BookOpen,
+} as const;
 
 const TX_TYPE_LABELS: Record<string, string> = {
   PURCHASE: "خرید",
@@ -86,8 +102,9 @@ export default function CreditPlatformPage() {
   if (platformQuery.isLoading) {
     return (
       <CreditsLayout>
-        <Skeleton className="h-10 w-40" />
-        <Skeleton className="mt-4 h-28 w-full" />
+        <Skeleton className="h-9 w-28 rounded-full" />
+        <Skeleton className="mt-4 h-52 w-full rounded-[1.75rem]" />
+        <Skeleton className="mt-4 h-12 w-full rounded-2xl" />
       </CreditsLayout>
     );
   }
@@ -100,74 +117,122 @@ export default function CreditPlatformPage() {
     );
   }
 
+  const balance = balanceQuery.data?.data;
+
   return (
     <CreditsLayout>
-      <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate("/credits")}>
+      <Button
+        variant="outline"
+        size="sm"
+        className="mb-4 rounded-full bg-card/80 shadow-sm backdrop-blur"
+        onClick={() => navigate("/credits")}
+      >
+        <ArrowRight className="h-4 w-4" />
         بازگشت
       </Button>
 
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <img src={platform.logoUrl} alt="" className="h-14 w-14 rounded-lg object-contain" />
-          <div>
-            <h2 className="text-xl font-bold">{platform.name}</h2>
-            {balanceQuery.isLoading && <Skeleton className="mt-1 h-6 w-32" />}
-            {balanceQuery.data?.data && (
-              <p className="text-lg font-bold text-primary">
-                {formatPrice(balanceQuery.data.data.available)}
-              </p>
-            )}
-            {balanceQuery.error && (
-              <p className="text-sm text-destructive">{balanceQuery.error.message}</p>
-            )}
+      <section className="animate-credit-rise relative mb-5 overflow-hidden rounded-[1.75rem] p-5 text-white shadow-xl shadow-indigo-900/20 sm:p-6">
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[linear-gradient(125deg,#0f172a,#4338ca,#7c3aed,#0f172a)] bg-[length:220%_220%] motion-safe:animate-credit-pan"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-8 top-0 h-32 w-32 rounded-full bg-white/15 blur-2xl motion-safe:animate-credit-float"
+        />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <img
+              src={platform.logoUrl}
+              alt=""
+              className="h-16 w-16 shrink-0 rounded-2xl bg-white object-contain p-1.5 shadow-lg"
+            />
+            <div className="min-w-0">
+              <p className="text-xs text-white/70">پلتفرم اعتباری</p>
+              <h2 className="text-2xl font-bold">{platform.name}</h2>
+              {balanceQuery.isLoading && <Skeleton className="mt-2 h-8 w-36 bg-white/20" />}
+              {balance && (
+                <>
+                  <p className="mt-2 text-xs text-white/70">موجودی قابل استفاده</p>
+                  <p className="text-3xl font-bold tracking-tight">
+                    <span className="inline-block" dir="ltr">
+                      {formatPrice(balance.available)}
+                    </span>
+                  </p>
+                  {balance.expiresAt && (
+                    <p className="mt-1 inline-flex items-center gap-1 text-xs text-white/80">
+                      <CalendarClock className="h-3.5 w-3.5" />
+                      انقضا: {formatDate(balance.expiresAt)}
+                    </p>
+                  )}
+                </>
+              )}
+              {balanceQuery.error && (
+                <p className="mt-2 text-sm text-rose-100">{balanceQuery.error.message}</p>
+              )}
+            </div>
           </div>
+          {platform.hasLaunch && (
+            <Button
+              disabled={launchMutation.isPending}
+              onClick={() => launchMutation.mutate()}
+              className="shrink-0 bg-white text-indigo-700 hover:bg-white/90"
+            >
+              {launchMutation.isPending ? (
+                "در حال انتقال..."
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  استفاده از اعتبار
+                  <ExternalLink className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          )}
         </div>
-        {platform.hasLaunch && (
-          <Button
-            disabled={launchMutation.isPending}
-            onClick={() => launchMutation.mutate()}
-            className="gap-2"
-          >
-            <ExternalLink className="h-4 w-4" />
-            {launchMutation.isPending ? "در حال انتقال..." : "استفاده از اعتبار"}
-          </Button>
+      </section>
+
+      <div className="mb-4 flex gap-1 overflow-x-auto rounded-2xl border bg-card/80 p-1 shadow-sm backdrop-blur">
+        {tabs.map((tab) => {
+          const Icon = TAB_ICONS[tab.key];
+          const active = currentTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm transition-all",
+                active
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div key={currentTab} className="animate-credit-rise">
+        {currentTab === "transactions" && <TransactionsTab slug={slug!} />}
+        {currentTab === "installments" && <InstallmentsTab slug={slug!} />}
+        {currentTab === "merchants" && (
+          <MerchantsTab slug={slug!} query={merchantQuery} onQueryChange={setMerchantQuery} />
+        )}
+        {currentTab === "instructions" && (
+          <Card className="border-border/70 bg-card/80 shadow-sm backdrop-blur">
+            <CardContent className="p-5">
+              {platform.instructions.trim() ? (
+                <MarkdownContent content={platform.instructions} />
+              ) : (
+                <EmptyState title="راهنمایی ثبت نشده" />
+              )}
+            </CardContent>
+          </Card>
         )}
       </div>
-
-      <div className="mb-4 flex gap-1 overflow-x-auto pb-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              "whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors",
-              currentTab === tab.key
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent",
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {currentTab === "transactions" && <TransactionsTab slug={slug!} />}
-      {currentTab === "installments" && <InstallmentsTab slug={slug!} />}
-      {currentTab === "merchants" && (
-        <MerchantsTab slug={slug!} query={merchantQuery} onQueryChange={setMerchantQuery} />
-      )}
-      {currentTab === "instructions" && (
-        <Card>
-          <CardContent className="p-4">
-            {platform.instructions.trim() ? (
-              <MarkdownContent content={platform.instructions} />
-            ) : (
-              <EmptyState title="راهنمایی ثبت نشده" />
-            )}
-          </CardContent>
-        </Card>
-      )}
     </CreditsLayout>
   );
 }
@@ -201,8 +266,12 @@ function TransactionsTab({ slug }: { slug: string }) {
 
   return (
     <div className="space-y-2">
-      {items.map((tx) => (
-        <div key={tx.id} className="rounded-lg border p-3">
+      {items.map((tx, index) => (
+        <div
+          key={tx.id}
+          style={{ animationDelay: `${index * 40}ms` }}
+          className="animate-credit-rise rounded-2xl border bg-card/80 p-4 shadow-sm backdrop-blur transition-colors hover:border-primary/30"
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="font-medium">{tx.description || TX_TYPE_LABELS[tx.type] || tx.type}</p>
@@ -211,11 +280,24 @@ function TransactionsTab({ slug }: { slug: string }) {
                 <p className="text-xs text-muted-foreground">{tx.merchantName}</p>
               )}
             </div>
-            <div className="text-left shrink-0">
-              <p className="font-bold" dir="ltr">
+            <div className="shrink-0 text-left">
+              <p
+                className={cn(
+                  "font-bold",
+                  tx.type === "REFUND" || tx.type === "CHARGE"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-foreground",
+                )}
+                dir="ltr"
+              >
                 {formatPrice(tx.amount)}
               </p>
-              <Badge variant="secondary" className="mt-1">
+              <Badge
+                variant={
+                  tx.status === "SUCCESS" ? "success" : tx.status === "FAILED" ? "destructive" : "warning"
+                }
+                className="mt-1"
+              >
                 {TX_STATUS_LABELS[tx.status] ?? tx.status}
               </Badge>
             </div>
@@ -254,22 +336,7 @@ function InstallmentsTab({ slug }: { slug: string }) {
   if (!data) return null;
 
   if (data.mode === "redirect") {
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-start gap-3 p-4">
-          <p className="text-sm text-muted-foreground">جزئیات اقساط در سایت پلتفرم قابل مشاهده است.</p>
-          <a
-            href={data.url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-          >
-            مشاهده اقساط
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        </CardContent>
-      </Card>
-    );
+    return <RedirectPanel text="جزئیات اقساط در سایت پلتفرم قابل مشاهده است." href={data.url} label="مشاهده اقساط" />;
   }
 
   if (data.items.length === 0) {
@@ -278,19 +345,54 @@ function InstallmentsTab({ slug }: { slug: string }) {
 
   return (
     <div className="space-y-2">
-      {data.items.map((item) => (
-        <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+      {data.items.map((item, index) => (
+        <div
+          key={item.id}
+          style={{ animationDelay: `${index * 40}ms` }}
+          className="animate-credit-rise flex items-center justify-between gap-3 rounded-2xl border bg-card/80 p-4 shadow-sm backdrop-blur"
+        >
           <div>
             <p className="font-medium">{item.label || "قسط"}</p>
             <p className="text-xs text-muted-foreground">{formatDate(item.dueAt)}</p>
           </div>
           <div className="text-left">
             <p className="font-bold">{formatPrice(item.amount)}</p>
-            <Badge variant="secondary">{INSTALLMENT_STATUS_LABELS[item.status] ?? item.status}</Badge>
+            <Badge
+              variant={
+                item.status === "PAID"
+                  ? "success"
+                  : item.status === "OVERDUE"
+                    ? "destructive"
+                    : item.status === "DUE"
+                      ? "warning"
+                      : "secondary"
+              }
+            >
+              {INSTALLMENT_STATUS_LABELS[item.status] ?? item.status}
+            </Badge>
           </div>
         </div>
       ))}
     </div>
+  );
+}
+
+function RedirectPanel({ text, href, label }: { text: string; href: string; label: string }) {
+  return (
+    <Card className="overflow-hidden border-border/70 bg-card/80 shadow-sm">
+      <CardContent className="flex flex-col items-start gap-3 p-5">
+        <p className="text-sm text-muted-foreground">{text}</p>
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground shadow-sm transition hover:opacity-90"
+        >
+          {label}
+          <ExternalLink className="h-4 w-4" />
+        </a>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -327,20 +429,11 @@ function MerchantsTab({
 
   if (first.mode === "redirect") {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-start gap-3 p-4">
-          <p className="text-sm text-muted-foreground">لیست پذیرندگان در سایت پلتفرم قابل مشاهده است.</p>
-          <a
-            href={first.url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-          >
-            مشاهده پذیرندگان
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        </CardContent>
-      </Card>
+      <RedirectPanel
+        text="لیست پذیرندگان در سایت پلتفرم قابل مشاهده است."
+        href={first.url}
+        label="مشاهده پذیرندگان"
+      />
     );
   }
 
@@ -350,20 +443,37 @@ function MerchantsTab({
 
   return (
     <div className="space-y-3">
-      <Input
-        placeholder="جستجوی پذیرنده..."
-        value={query}
-        onChange={(e) => onQueryChange(e.target.value)}
-      />
+      <div className="relative">
+        <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="جستجوی پذیرنده..."
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          className="rounded-2xl bg-card/80 ps-9"
+        />
+      </div>
       {items.length === 0 && <EmptyState title="پذیرنده‌ای یافت نشد" />}
       <div className="space-y-2">
-        {items.map((merchant) => (
-          <div key={merchant.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-            <div className="min-w-0">
-              <p className="truncate font-medium">{merchant.name}</p>
-              {merchant.category && (
-                <p className="text-xs text-muted-foreground">{merchant.category}</p>
+        {items.map((merchant, index) => (
+          <div
+            key={merchant.id}
+            style={{ animationDelay: `${index * 40}ms` }}
+            className="animate-credit-rise flex items-center justify-between gap-3 rounded-2xl border bg-card/80 p-4 shadow-sm backdrop-blur"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              {merchant.logoUrl ? (
+                <img src={merchant.logoUrl} alt="" className="h-10 w-10 shrink-0 rounded-xl object-contain" />
+              ) : (
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Store className="h-4 w-4" />
+                </span>
               )}
+              <div className="min-w-0">
+                <p className="truncate font-medium">{merchant.name}</p>
+                {merchant.category && (
+                  <p className="text-xs text-muted-foreground">{merchant.category}</p>
+                )}
+              </div>
             </div>
             {merchant.url && (
               <a

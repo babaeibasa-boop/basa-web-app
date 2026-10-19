@@ -166,12 +166,20 @@ export function CreditsLayout({ children }: { children: React.ReactNode }) {
   const displayName = user ? `${user.name} ${user.family}`.trim() : null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
+    <div className="relative min-h-screen overflow-x-hidden bg-background">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-28 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-indigo-500/20 blur-3xl motion-safe:animate-credit-float" />
+        <div className="absolute top-72 -start-24 h-72 w-72 rounded-full bg-fuchsia-500/15 blur-3xl motion-safe:animate-credit-drift" />
+        <div className="absolute top-[40rem] -end-16 h-64 w-64 rounded-full bg-sky-400/15 blur-3xl motion-safe:animate-credit-float" />
+        <div className="absolute inset-x-0 top-0 h-[36rem] bg-[radial-gradient(ellipse_at_top,var(--color-primary),transparent_62%)] opacity-20" />
+      </div>
+      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <WalletCards className="h-5 w-5 text-primary" />
-            <h1 className="text-base font-bold">اعتبار پلتفرم‌ها</h1>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <WalletCards className="h-4 w-4" />
+            </span>
+            <h1 className="text-base font-bold">هاب اعتباری باسا</h1>
           </div>
           <div className="flex min-w-0 items-center gap-2">
             {displayName && (
@@ -193,7 +201,7 @@ export function CreditsLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
+      <main className="relative mx-auto max-w-3xl px-4 py-6">{children}</main>
     </div>
   );
 }
