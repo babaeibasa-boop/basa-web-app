@@ -350,7 +350,7 @@ function mapTransactionType(row: Record<string, unknown>): CreditTransactionType
   const type = String(row.transactionType ?? "").toLowerCase();
 
   if (source.includes("refund") || source.includes("بازگشت")) return "REFUND";
-  if (source.includes("deposit") || source.includes("واریز") || type.includes("واریز")) return "CHARGE";
+  if (source.includes("deposit") || source.includes("واریز") || type.includes("deposit")) return "CHARGE";
   if (
     source.includes("payment") ||
     source.includes("پرداخت") ||

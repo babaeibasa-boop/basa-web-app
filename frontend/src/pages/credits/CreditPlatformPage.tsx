@@ -29,7 +29,7 @@ const TAB_ICONS = {
 } as const;
 
 const TX_TYPE_LABELS: Record<string, string> = {
-  PURCHASE: "خرید",
+  PURCHASE: "برداشت",
   REFUND: "بازگشت",
   CHARGE: "شارژ",
   INSTALLMENT_PAYMENT: "پرداخت قسط",
@@ -154,7 +154,7 @@ export default function CreditPlatformPage() {
               {balance && (
                 <>
                   <p className="mt-2 text-xs text-white/70">موجودی قابل استفاده</p>
-                  <p className="text-3xl font-bold tracking-tight">
+                  <p className="text-xl md:text-3xl font-bold tracking-tight">
                     <span className="inline-block" dir="ltr">
                       {formatPrice(balance.available)}
                     </span>
@@ -192,29 +192,30 @@ export default function CreditPlatformPage() {
         </div>
       </section>
 
-      <div className="mb-4 flex gap-1 overflow-x-auto rounded-2xl border bg-card/80 p-1 shadow-sm backdrop-blur">
-        {tabs.map((tab) => {
-          const Icon = TAB_ICONS[tab.key];
-          const active = currentTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm transition-all",
-                active
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          );
-        })}
+      <div className="p-1 mb-4 bg-card/80 shadow-sm backdrop-blur rounded-2xl border">
+        <div className=" flex gap-1 overflow-x-auto">
+          {tabs.map((tab) => {
+            const Icon = TAB_ICONS[tab.key];
+            const active = currentTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm transition-all",
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
-
       <div key={currentTab} className="animate-credit-rise">
         {currentTab === "transactions" && <TransactionsTab slug={slug!} />}
         {currentTab === "installments" && <InstallmentsTab slug={slug!} />}
@@ -274,24 +275,11 @@ function TransactionsTab({ slug }: { slug: string }) {
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-medium">{tx.description || TX_TYPE_LABELS[tx.type] || tx.type}</p>
+              <p className="font-medium">{tx.description}</p>
               <p className="text-xs text-muted-foreground">{formatDate(tx.occurredAt)}</p>
               {tx.merchantName && (
                 <p className="text-xs text-muted-foreground">{tx.merchantName}</p>
               )}
-            </div>
-            <div className="shrink-0 text-left">
-              <p
-                className={cn(
-                  "font-bold",
-                  tx.type === "REFUND" || tx.type === "CHARGE"
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-foreground",
-                )}
-                dir="ltr"
-              >
-                {formatPrice(tx.amount)}
-              </p>
               <Badge
                 variant={
                   tx.status === "SUCCESS" ? "success" : tx.status === "FAILED" ? "destructive" : "warning"
@@ -300,6 +288,30 @@ function TransactionsTab({ slug }: { slug: string }) {
               >
                 {TX_STATUS_LABELS[tx.status] ?? tx.status}
               </Badge>
+            </div>
+            <div className="shrink-0 text-left">
+              <p
+                className={cn(
+                  "font-bold"
+                  ,
+                  "text-foreground",
+
+                )}
+                dir="ltr"
+              >
+                {formatPrice(tx.amount)}
+              </p>
+              <span
+                // variant="secondary"
+                className={cn(
+                  "mt-1 font-bold text-[12px]",
+                  tx.type === "REFUND" || tx.type === "CHARGE"
+                    ? "text-emerald-400 dark:text-emerald-800"
+                    : "text-rose-400 dark:text-rose-800"
+                )}
+              >
+                {TX_TYPE_LABELS[tx.type] || tx.type}
+              </span>
             </div>
           </div>
         </div>
