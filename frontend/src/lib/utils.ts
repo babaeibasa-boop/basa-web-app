@@ -93,6 +93,11 @@ export function voucherPlatformSlugFromPath(pathname: string): string | null {
   return match[1];
 }
 
+export function isCreditsPath(pathname: string): boolean {
+  const path = pathname.split("?")[0] ?? pathname;
+  return path === "/credits" || path.startsWith("/credits/");
+}
+
 export function splashLoginSearch(
   ut: string,
   pathname: string,

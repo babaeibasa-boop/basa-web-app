@@ -12,6 +12,7 @@ export default defineConfig({
       ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       WALLET_API_BASE_URL: "https://wallet.example.com/api",
       WALLET_API_TOKEN: "wallet-token",
+      WALLET_CREDITS_API_TOKEN: "credits-wallet-token",
       WALLET_CALLBACK_URL: "http://localhost:5173/payment/result",
       TOP_API_TOKEN: "top-token",
     },

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, AdminAuthProvider, useAuth, useAdminAuth } from "@/hooks/use-auth";
 import { ToastProvider } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/badge";
-import { splashLoginSearch, voucherPlatformSlugFromPath } from "@/lib/utils";
+import { isCreditsPath, splashLoginSearch, voucherPlatformSlugFromPath } from "@/lib/utils";
 import SplashPage from "@/pages/user/SplashPage";
 import OrdersPage from "@/pages/user/OrdersPage";
 import OrderDetailPage from "@/pages/user/OrderDetailPage";
@@ -41,9 +41,10 @@ function UserGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const ut = searchParams.get("ut");
-  const isPlatformSso = Boolean(voucherPlatformSlugFromPath(location.pathname));
+  const needsScopedWalletLogin =
+    Boolean(voucherPlatformSlugFromPath(location.pathname)) || isCreditsPath(location.pathname);
 
-  if (ut && (isPlatformSso || !isAuthenticated)) {
+  if (ut && (needsScopedWalletLogin || !isAuthenticated)) {
     return <Navigate to={`/?${splashLoginSearch(ut, location.pathname, searchParams)}`} replace />;
   }
 

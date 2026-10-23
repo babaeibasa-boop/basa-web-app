@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { authApi } from "@/api";
 import { Skeleton } from "@/components/ui/badge";
-import { safeRedirectPath, voucherPlatformSlugFromPath } from "@/lib/utils";
+import { isCreditsPath, safeRedirectPath, voucherPlatformSlugFromPath } from "@/lib/utils";
 
 const postLoginPath = import.meta.env.PROD ? "/reftek" : "/orders";
 
@@ -18,6 +18,7 @@ export default function SplashPage() {
     const nextPath = safeRedirectPath(searchParams.get("redirect"), postLoginPath);
     const platformSlug =
       searchParams.get("platform") || voucherPlatformSlugFromPath(nextPath) || undefined;
+    const walletScope = isCreditsPath(nextPath) ? "credits" : undefined;
 
     if (isAuthenticated && !ut) {
       navigate(nextPath, { replace: true });
@@ -30,7 +31,7 @@ export default function SplashPage() {
 
     setLoginError(false);
     authApi
-      .walletLogin(ut, platformSlug)
+      .walletLogin(ut, platformSlug, walletScope)
       .then((res) => {
         login(res.data.token, res.data.user);
         navigate(nextPath, { replace: true });

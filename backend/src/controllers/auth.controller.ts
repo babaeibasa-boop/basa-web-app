@@ -6,12 +6,13 @@ import { sendSuccess } from "../lib/response.js";
 const walletAuthSchema = z.object({
   ut: z.string().min(1, "توکن کیف پول الزامی است"),
   platformSlug: z.string().min(1).optional(),
+  walletScope: z.enum(["credits"]).optional(),
 });
 
 export async function walletAuth(req: Request, res: Response, next: NextFunction) {
   try {
-    const { ut, platformSlug } = walletAuthSchema.parse(req.body);
-    const result = await authenticateWithWalletToken(ut, platformSlug);
+    const { ut, platformSlug, walletScope } = walletAuthSchema.parse(req.body);
+    const result = await authenticateWithWalletToken(ut, platformSlug, walletScope);
     sendSuccess(res, result, "ورود موفق");
   } catch (error) {
     next(error);

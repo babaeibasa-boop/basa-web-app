@@ -28,10 +28,11 @@ import type {
 } from "@/types";
 
 export const authApi = {
-  walletLogin: (ut: string, platformSlug?: string) =>
+  walletLogin: (ut: string, platformSlug?: string, walletScope?: "credits") =>
     api.post<unknown, ApiResponse<{ token: string; user: User }>>("/auth/wallet", {
       ut,
       ...(platformSlug ? { platformSlug } : {}),
+      ...(walletScope ? { walletScope } : {}),
     }),
   getProfile: () => api.get<unknown, ApiResponse<User>>("/auth/profile"),
 };
