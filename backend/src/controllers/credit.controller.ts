@@ -1,5 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
+import { z } from "zod";
 import { sendSuccess } from "../lib/response.js";
+import { normalizeDigits } from "../lib/digits.js";
+import { submitNationalCode } from "../services/national-code.service.js";
 import {
   getCreditBalance,
   getCreditInstallments,
@@ -9,6 +12,13 @@ import {
   getCreditTransactions,
   listCreditPlatformsWithBalances,
 } from "../services/credit/credit.service.js";
+
+const nationalCodeSchema = z.object({
+  nationalCode: z
+    .string({ required_error: "کد ملی الزامی است" })
+    .transform((value) => normalizeDigits(value.trim()))
+    .refine((value) => /^\d{10}$/.test(value), { message: "کد ملی باید ۱۰ رقم باشد" }),
+});
 
 export async function listPlatforms(req: Request, res: Response, next: NextFunction) {
   try {
@@ -78,6 +88,16 @@ export async function launch(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await getCreditLaunchUrl(req.user!.userId, String(req.params.slug));
     sendSuccess(res, result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function saveNationalCode(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { nationalCode } = nationalCodeSchema.parse(req.body);
+    const user = await submitNationalCode(req.user!.userId, nationalCode);
+    sendSuccess(res, user, "کد ملی با موفقیت ثبت شد");
   } catch (error) {
     next(error);
   }

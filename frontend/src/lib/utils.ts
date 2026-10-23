@@ -18,6 +18,10 @@ export function parseDigitInput(value: string): string {
   return normalizeDigits(value).replace(/\D/g, "");
 }
 
+export function isValidNationalCode(value: string): boolean {
+  return /^\d{10}$/.test(normalizeDigits(value.trim()));
+}
+
 export function formatAmountInput(digits: string): string {
   if (!digits) return "";
   return new Intl.NumberFormat("fa-IR").format(BigInt(digits));

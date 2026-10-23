@@ -75,6 +75,8 @@ export const reftekApi = {
 };
 
 export const creditApi = {
+  submitNationalCode: (nationalCode: string) =>
+    api.post<unknown, ApiResponse<User>>("/credits/national-code", { nationalCode }),
   getPlatforms: () => api.get<unknown, ApiResponse<CreditPlatformSummary[]>>("/credits/platforms"),
   getPlatform: (slug: string) =>
     api.get<unknown, ApiResponse<CreditPlatformDetail>>(`/credits/platforms/${encodeURIComponent(slug)}`),

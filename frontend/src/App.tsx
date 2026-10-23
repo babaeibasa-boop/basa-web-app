@@ -16,6 +16,7 @@ import VoucherPlatformPage from "@/pages/user/VoucherPlatformPage";
 import VoucherPurchasesPage from "@/pages/user/VoucherPurchasesPage";
 import CreditsPage from "@/pages/credits/CreditsPage";
 import CreditPlatformPage from "@/pages/credits/CreditPlatformPage";
+import { NationalCodeGate } from "@/pages/credits/NationalCodeGate";
 
 const AdminLoginPage = lazy(() => import("@/pages/admin/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("@/pages/admin/AdminDashboardPage"));
@@ -87,8 +88,8 @@ export default function App() {
                   <Route path="/voucher/purchases" element={<Navigate to="/reftek" replace />} />
                   <Route path="/voucher/:slug/purchases" element={<UserGuard><VoucherPurchasesPage /></UserGuard>} />
                   <Route path="/voucher/:slug" element={<UserGuard><VoucherPlatformPage /></UserGuard>} />
-                  <Route path="/credits" element={<UserGuard><CreditsPage /></UserGuard>} />
-                  <Route path="/credits/:slug" element={<UserGuard><CreditPlatformPage /></UserGuard>} />
+                  <Route path="/credits" element={<UserGuard><NationalCodeGate><CreditsPage /></NationalCodeGate></UserGuard>} />
+                  <Route path="/credits/:slug" element={<UserGuard><NationalCodeGate><CreditPlatformPage /></NationalCodeGate></UserGuard>} />
                   <Route path="/payment/result" element={<UserGuard><PaymentResultPage /></UserGuard>} />
                   <Route path="/admin/login" element={<AdminLoginPage />} />
                   <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />

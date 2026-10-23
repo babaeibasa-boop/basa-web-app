@@ -21,6 +21,8 @@ const configSchema = z.object({
   melipayamakUsername: z.string().default(""),
   melipayamakPassword: z.string().default(""),
   melipayamakFromNumber: z.string().default(""),
+  nationalCodeMatchUrl: z.string().default(""),
+  nationalCodeMatchToken: z.string().default(""),
 });
 
 export const config = configSchema.parse({
@@ -40,4 +42,6 @@ export const config = configSchema.parse({
   melipayamakUsername: process.env.MELIPAYAMAK_USERNAME,
   melipayamakPassword: process.env.MELIPAYAMAK_PASSWORD,
   melipayamakFromNumber: process.env.MELIPAYAMAK_FROM_NUMBER,
+  nationalCodeMatchUrl: process.env.NATIONAL_CODE_MATCH_URL,
+  nationalCodeMatchToken: process.env.NATIONAL_CODE_MATCH_TOKEN,
 });

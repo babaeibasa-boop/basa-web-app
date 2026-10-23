@@ -9,6 +9,7 @@ export interface User {
   name: string;
   family: string;
   phone: string;
+  hasNationalCode?: boolean;
 }
 
 export interface Invoice {

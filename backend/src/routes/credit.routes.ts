@@ -8,10 +8,12 @@ import {
   getTransactions,
   launch,
   listPlatforms,
+  saveNationalCode,
 } from "../controllers/credit.controller.js";
 
 const router = Router();
 
+router.post("/national-code", authenticateUser, saveNationalCode);
 router.get("/platforms", authenticateUser, listPlatforms);
 router.get("/platforms/:slug", authenticateUser, getPlatform);
 router.get("/platforms/:slug/balance", authenticateUser, getBalance);
