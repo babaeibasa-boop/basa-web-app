@@ -57,11 +57,11 @@ export async function authenticateWithWalletToken(
   });
 
   const token = signUserToken({ userId: user.id, walletId: user.walletId });
-  logAuth("User authenticated via wallet", {
-    userId: user.id,
-    walletId: user.walletId,
-    platformSlug,
-  });
+  // logAuth("User authenticated via wallet", {
+  //   userId: user.id,
+  //   walletId: user.walletId,
+  //   platformSlug,
+  // });
 
   return {
     token,
