@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import {
+  ArrowDownToLine,
   ArrowRight,
+  ArrowUpFromLine,
   BookOpen,
   CalendarClock,
   ExternalLink,
@@ -31,7 +33,7 @@ const TAB_ICONS = {
 const TX_TYPE_LABELS: Record<string, string> = {
   PURCHASE: "برداشت",
   REFUND: "بازگشت",
-  CHARGE: "شارژ",
+  CHARGE: "واریز",
   INSTALLMENT_PAYMENT: "پرداخت قسط",
   OTHER: "سایر",
 };
@@ -203,7 +205,7 @@ export default function CreditPlatformPage() {
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  "inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm transition-all",
+                  "inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm transition-all pointer",
                   active
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
@@ -301,17 +303,18 @@ function TransactionsTab({ slug }: { slug: string }) {
               >
                 {formatPrice(tx.amount)}
               </p>
-              <span
+              <div
                 // variant="secondary"
                 className={cn(
-                  "mt-1 font-bold text-[12px]",
+                  "mt-1 font-bold text-[12px] flex items-center justify-end gap-1",
                   tx.type === "REFUND" || tx.type === "CHARGE"
-                    ? "text-emerald-400 dark:text-emerald-800"
-                    : "text-rose-400 dark:text-rose-800"
+                    ? "text-emerald-400 dark:text-emerald-600"
+                    : "text-rose-400 dark:text-rose-600"
                 )}
               >
-                {TX_TYPE_LABELS[tx.type] || tx.type}
-              </span>
+                <span>{TX_TYPE_LABELS[tx.type] || tx.type}</span>
+                <span>{tx.type === "REFUND" || tx.type === "CHARGE" ? <ArrowDownToLine className="w-4 h-4"/> : <ArrowUpFromLine className="w-4 h-4"/>}</span>
+              </div>
             </div>
           </div>
         </div>

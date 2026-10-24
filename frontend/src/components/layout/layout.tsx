@@ -176,8 +176,9 @@ export function CreditsLayout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <WalletCards className="h-4 w-4" />
+            <span className="flex items-center justify-center rounded-xl text-primary">
+              {/* <WalletCards className="h-4 w-4" /> */}
+              <img src="/favicon.png" className="w-15 dark:brightness-0 dark:invert"/>
             </span>
             <h1 className="text-base font-bold">هاب اعتباری باسا</h1>
           </div>

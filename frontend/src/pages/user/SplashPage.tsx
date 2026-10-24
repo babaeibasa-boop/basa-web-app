@@ -47,12 +47,12 @@ export default function SplashPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">فروشگاه اشتراک AI</h1>
+        <h1 className="text-2xl font-bold">در حال بارگذاری</h1>
         <p className="mt-2 text-muted-foreground">
           {loginError
-            ? "ورود ناموفق بود. لطفاً دوباره از کیف پول وارد شوید."
+            ? "ورود ناموفق بود. لطفاً مجددا از کیف پول باسا وارد شوید."
             : waitingForWallet
-              ? "برای ورود باید از طریق کیف پول وارد شوید."
+              ? "برای ورود باید از طریق کیف پول باسا وارد شوید."
               : "در حال ورود..."}
         </p>
       </div>
