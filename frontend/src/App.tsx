@@ -5,7 +5,7 @@ import { AuthProvider, AdminAuthProvider, useAuth, useAdminAuth } from "@/hooks/
 import { ToastProvider } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/badge";
 import { isReftekAccessAllowed } from "@/lib/reftek-access";
-import { splashLoginSearch, voucherPlatformSlugFromPath } from "@/lib/utils";
+import { isCreditsPath, splashLoginSearch, voucherPlatformSlugFromPath } from "@/lib/utils";
 import SplashPage from "@/pages/user/SplashPage";
 import OrdersPage from "@/pages/user/OrdersPage";
 import OrderDetailPage from "@/pages/user/OrderDetailPage";
@@ -15,6 +15,9 @@ import ReftekPage from "@/pages/user/ReftekPage";
 import ReftekCategoryPage from "@/pages/user/ReftekCategoryPage";
 import VoucherPlatformPage from "@/pages/user/VoucherPlatformPage";
 import VoucherPurchasesPage from "@/pages/user/VoucherPurchasesPage";
+import CreditsPage from "@/pages/credits/CreditsPage";
+import CreditPlatformPage from "@/pages/credits/CreditPlatformPage";
+import { NationalCodeGate } from "@/pages/credits/NationalCodeGate";
 
 const AdminLoginPage = lazy(() => import("@/pages/admin/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("@/pages/admin/AdminDashboardPage"));
@@ -26,6 +29,7 @@ const AdminVoucherPlatformsPage = lazy(() => import("@/pages/admin/AdminVoucherP
 const AdminCategoriesPage = lazy(() => import("@/pages/admin/AdminCategoriesPage"));
 const AdminVouchersPage = lazy(() => import("@/pages/admin/AdminVouchersPage"));
 const AdminVoucherSalesPage = lazy(() => import("@/pages/admin/AdminVoucherSalesPage"));
+const AdminCreditPlatformsPage = lazy(() => import("@/pages/admin/AdminCreditPlatformsPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,9 +42,10 @@ function UserGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const ut = searchParams.get("ut");
-  const isPlatformSso = Boolean(voucherPlatformSlugFromPath(location.pathname));
+  const needsScopedWalletLogin =
+    Boolean(voucherPlatformSlugFromPath(location.pathname)) || isCreditsPath(location.pathname);
 
-  if (ut && (isPlatformSso || !isAuthenticated)) {
+  if (ut && (needsScopedWalletLogin || !isAuthenticated)) {
     return <Navigate to={`/?${splashLoginSearch(ut, location.pathname, searchParams)}`} replace />;
   }
 
@@ -111,6 +116,8 @@ export default function App() {
                       </UserGuard>
                     }
                   />
+                  <Route path="/credits" element={<UserGuard><NationalCodeGate><CreditsPage /></NationalCodeGate></UserGuard>} />
+                  <Route path="/credits/:slug" element={<UserGuard><NationalCodeGate><CreditPlatformPage /></NationalCodeGate></UserGuard>} />
                   <Route path="/payment/result" element={<UserGuard><PaymentResultPage /></UserGuard>} />
                   <Route path="/admin/login" element={<AdminLoginPage />} />
                   <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />
@@ -122,6 +129,7 @@ export default function App() {
                   <Route path="/admin/voucher-platforms" element={<AdminGuard><AdminVoucherPlatformsPage /></AdminGuard>} />
                   <Route path="/admin/vouchers" element={<AdminGuard><AdminVouchersPage /></AdminGuard>} />
                   <Route path="/admin/voucher-sales" element={<AdminGuard><AdminVoucherSalesPage /></AdminGuard>} />
+                  <Route path="/admin/credit-platforms" element={<AdminGuard><AdminCreditPlatformsPage /></AdminGuard>} />
                   {!isProduction && (
                     <>
                       <Route path="/orders" element={<UserGuard><OrdersPage /></UserGuard>} />

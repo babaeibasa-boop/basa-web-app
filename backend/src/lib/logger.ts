@@ -26,3 +26,9 @@ export const logWalletError = (message: string, meta?: Record<string, unknown>) 
 
 export const logExternalError = (message: string, meta?: Record<string, unknown>) =>
   logger.error({ category: "external_error", ...meta }, message);
+
+export const logCredit = (message: string, meta?: Record<string, unknown>) =>
+  logger.info({ category: "credit", ...meta }, message);
+
+export const logCreditError = (message: string, meta?: Record<string, unknown>) =>
+  logger.error({ category: "credit", ...meta }, message);

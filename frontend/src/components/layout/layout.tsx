@@ -1,5 +1,5 @@
 import { Link, useLocation, useParams } from "react-router-dom";
-import { Moon, Sun, Plus, Package, AppWindow, User, Ticket } from "lucide-react";
+import { Moon, Sun, Plus, Package, AppWindow, User, Ticket, WalletCards } from "lucide-react";
 import { useAuth, useAdminAuth, useTheme } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -160,6 +160,53 @@ export function VoucherLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+export function CreditsLayout({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const displayName = user ? `${user.name} ${user.family}`.trim() : null;
+
+  return (
+    <div className="relative min-h-screen overflow-x-hidden bg-background">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-28 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-indigo-500/20 blur-3xl motion-safe:animate-credit-float" />
+        <div className="absolute top-72 -start-24 h-72 w-72 rounded-full bg-fuchsia-500/15 blur-3xl motion-safe:animate-credit-drift" />
+        <div className="absolute top-[40rem] -end-16 h-64 w-64 rounded-full bg-sky-400/15 blur-3xl motion-safe:animate-credit-float" />
+        <div className="absolute inset-x-0 top-0 h-[36rem] bg-[radial-gradient(ellipse_at_top,var(--color-primary),transparent_62%)] opacity-20" />
+      </div>
+      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center rounded-xl text-primary">
+              {/* <WalletCards className="h-4 w-4" /> */}
+              <img src="/favicon.png" className="w-15 dark:brightness-0 dark:invert"/>
+            </span>
+            <h1 className="text-base font-bold">هاب اعتباری باسا</h1>
+          </div>
+          <div className="flex min-w-0 items-center gap-2">
+            {displayName && (
+              <>
+                <span className="truncate text-sm text-muted-foreground">{displayName}</span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <User className="h-4 w-4" />
+                </span>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "حالت روشن" : "حالت تاریک"}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+      </header>
+      <main className="relative mx-auto max-w-3xl px-4 py-6">{children}</main>
+    </div>
+  );
+}
+
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { admin, logout } = useAdminAuth();
   const { theme, toggleTheme } = useTheme();
@@ -173,6 +220,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { to: "/admin/voucher-platforms", label: "پلتفرم ووچر" },
     { to: "/admin/vouchers", label: "ووچرها" },
     { to: "/admin/voucher-sales", label: "فروش ووچر" },
+    { to: "/admin/credit-platforms", label: "پلتفرم اعتبار" },
     { to: "/admin/settings", label: "تنظیمات" },
   ];
 

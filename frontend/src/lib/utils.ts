@@ -18,6 +18,10 @@ export function parseDigitInput(value: string): string {
   return normalizeDigits(value).replace(/\D/g, "");
 }
 
+export function isValidNationalCode(value: string): boolean {
+  return /^\d{10}$/.test(normalizeDigits(value.trim()));
+}
+
 export function formatAmountInput(digits: string): string {
   if (!digits) return "";
   return new Intl.NumberFormat("fa-IR").format(BigInt(digits));
@@ -80,13 +84,18 @@ export const VOUCHER_PURCHASE_STATUS_LABELS: Record<string, string> = {
   CANCELLED: "لغو شده",
 };
 
-const ALLOWED_REDIRECT_PREFIXES = ["/voucher", "/reftek", "/orders", "/payment"];
+const ALLOWED_REDIRECT_PREFIXES = ["/voucher", "/reftek", "/orders", "/payment", "/credits"];
 
 export function voucherPlatformSlugFromPath(pathname: string): string | null {
   const path = pathname.split("?")[0] ?? pathname;
   const match = path.match(/^\/voucher\/([^/]+)(?:\/purchases)?$/);
   if (!match?.[1] || match[1] === "purchases") return null;
   return match[1];
+}
+
+export function isCreditsPath(pathname: string): boolean {
+  const path = pathname.split("?")[0] ?? pathname;
+  return path === "/credits" || path.startsWith("/credits/");
 }
 
 export function splashLoginSearch(

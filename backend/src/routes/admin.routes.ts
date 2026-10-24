@@ -26,6 +26,11 @@ import {
   addCategory,
   patchCategory,
   removeCategory,
+  creditAdapters,
+  creditPlatforms,
+  addCreditPlatform,
+  patchCreditPlatform,
+  removeCreditPlatform,
 } from "../controllers/admin.controller.js";
 import { authenticateAdmin } from "../middleware/auth.js";
 
@@ -62,5 +67,10 @@ router.post("/vouchers/import", authenticateAdmin, importAdminVouchers);
 router.get("/voucher-sales", authenticateAdmin, voucherSales);
 router.get("/settings", authenticateAdmin, settings);
 router.patch("/settings", authenticateAdmin, patchSettings);
+router.get("/credit-adapters", authenticateAdmin, creditAdapters);
+router.get("/credit-platforms", authenticateAdmin, creditPlatforms);
+router.post("/credit-platforms", authenticateAdmin, addCreditPlatform);
+router.patch("/credit-platforms/:id", authenticateAdmin, patchCreditPlatform);
+router.delete("/credit-platforms/:id", authenticateAdmin, removeCreditPlatform);
 
 export default router;

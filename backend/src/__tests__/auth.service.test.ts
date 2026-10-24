@@ -57,6 +57,20 @@ describe("authenticateWithWalletToken", () => {
     expect(walletService.getUserInfo).toHaveBeenCalledWith("ut-1", undefined);
   });
 
+  it("uses the credits wallet token for the credits scope", async () => {
+    await authenticateWithWalletToken("ut-1", undefined, "credits");
+
+    expect(prisma.voucherPlatform.findUnique).not.toHaveBeenCalled();
+    expect(walletService.getUserInfo).toHaveBeenCalledWith("ut-1", "credits-wallet-token");
+  });
+
+  it("prefers the credits wallet token over a platform slug", async () => {
+    await authenticateWithWalletToken("ut-1", "spotify", "credits");
+
+    expect(prisma.voucherPlatform.findUnique).not.toHaveBeenCalled();
+    expect(walletService.getUserInfo).toHaveBeenCalledWith("ut-1", "credits-wallet-token");
+  });
+
   it("uses the decrypted platform PWD when a platform slug is provided", async () => {
     prisma.voucherPlatform.findUnique.mockResolvedValue({
       slug: "spotify",

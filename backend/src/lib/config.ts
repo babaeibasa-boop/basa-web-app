@@ -16,11 +16,14 @@ const configSchema = z.object({
   encryptionKey: z.string().length(64),
   walletApiBaseUrl: z.string().url(),
   walletApiToken: z.string().min(1),
+  walletCreditsApiToken: z.string().min(1),
   walletCallbackUrl: z.string().url(),
   topApiToken: z.string().min(1),
   melipayamakUsername: z.string().default(""),
   melipayamakPassword: z.string().default(""),
   melipayamakFromNumber: z.string().default(""),
+  nationalCodeMatchUrl: z.string().default(""),
+  nationalCodeMatchToken: z.string().default(""),
 });
 
 export const config = configSchema.parse({
@@ -35,9 +38,12 @@ export const config = configSchema.parse({
   encryptionKey: process.env.ENCRYPTION_KEY,
   walletApiBaseUrl: process.env.WALLET_API_BASE_URL,
   walletApiToken: process.env.WALLET_API_TOKEN,
+  walletCreditsApiToken: process.env.WALLET_CREDITS_API_TOKEN,
   walletCallbackUrl: process.env.WALLET_CALLBACK_URL,
   topApiToken: process.env.TOP_API_TOKEN,
   melipayamakUsername: process.env.MELIPAYAMAK_USERNAME,
   melipayamakPassword: process.env.MELIPAYAMAK_PASSWORD,
   melipayamakFromNumber: process.env.MELIPAYAMAK_FROM_NUMBER,
+  nationalCodeMatchUrl: process.env.NATIONAL_CODE_MATCH_URL,
+  nationalCodeMatchToken: process.env.NATIONAL_CODE_MATCH_TOKEN,
 });

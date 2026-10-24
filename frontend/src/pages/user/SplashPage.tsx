@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { authApi } from "@/api";
 import { Skeleton } from "@/components/ui/badge";
-import { safeRedirectPath, voucherPlatformSlugFromPath } from "@/lib/utils";
+import { isCreditsPath, safeRedirectPath, voucherPlatformSlugFromPath } from "@/lib/utils";
 
 const postLoginPath = import.meta.env.PROD ? "/reftek" : "/orders";
 
@@ -18,6 +18,7 @@ export default function SplashPage() {
     const nextPath = safeRedirectPath(searchParams.get("redirect"), postLoginPath);
     const platformSlug =
       searchParams.get("platform") || voucherPlatformSlugFromPath(nextPath) || undefined;
+    const walletScope = isCreditsPath(nextPath) ? "credits" : undefined;
 
     if (isAuthenticated && !ut) {
       navigate(nextPath, { replace: true });
@@ -30,7 +31,7 @@ export default function SplashPage() {
 
     setLoginError(false);
     authApi
-      .walletLogin(ut, platformSlug)
+      .walletLogin(ut, platformSlug, walletScope)
       .then((res) => {
         login(res.data.token, res.data.user);
         navigate(nextPath, { replace: true });
@@ -46,12 +47,12 @@ export default function SplashPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">فروشگاه اشتراک AI</h1>
+        <h1 className="text-2xl font-bold">در حال بارگذاری</h1>
         <p className="mt-2 text-muted-foreground">
           {loginError
-            ? "ورود ناموفق بود. لطفاً دوباره از کیف پول وارد شوید."
+            ? "ورود ناموفق بود. لطفاً مجددا از کیف پول باسا وارد شوید."
             : waitingForWallet
-              ? "برای ورود باید از طریق کیف پول وارد شوید."
+              ? "برای ورود باید از طریق کیف پول باسا وارد شوید."
               : "در حال ورود..."}
         </p>
       </div>
