@@ -1,6 +1,5 @@
 import axios, { type AxiosError } from "axios";
 import { z } from "zod";
-import { logCredit, logCreditError } from "../../../lib/logger.js";
 import {
   CreditAdapterError,
   type CreditAdapter,
@@ -11,20 +10,6 @@ import {
   type CreditUser,
   type CursorPage,
 } from "../types.js";
-
-function maskSecret(value: string | undefined | null, visible = 2): string {
-  if (!value) return "(empty)";
-  if (value.length <= visible * 2) return "***";
-  return `${value.slice(0, visible)}…${value.slice(-visible)}`;
-}
-
-function summarizePayload(payload: unknown): Record<string, unknown> {
-  if (payload === null || payload === undefined) return { type: String(payload) };
-  if (typeof payload !== "object") return { type: typeof payload, value: payload };
-  if (Array.isArray(payload)) return { type: "array", length: payload.length };
-  const keys = Object.keys(payload as object);
-  return { type: "object", keys, preview: JSON.stringify(payload).slice(0, 500) };
-}
 
 /**
  * Barook (بامداد رویان کیان) organizational credit API.
@@ -95,18 +80,7 @@ function parseJwtExpiryMs(token: string): number | null {
 
 function requireNationalCode(user: CreditUser): string {
   const code = user.nationalCode?.trim();
-  logCredit("Barook requireNationalCode", {
-    step: "barook.requireNationalCode",
-    userId: user.id,
-    hasNationalCode: Boolean(code),
-    nationalCodeMasked: maskSecret(code, 1),
-  });
   if (!code) {
-    logCreditError("Barook nationalCode missing on user", {
-      step: "barook.requireNationalCode.fail",
-      userId: user.id,
-      phone: user.phone,
-    });
     throw new CreditAdapterError(
       "USER_NOT_FOUND",
       "کد ملی کاربر برای سرویس باروک موجود نیست",
@@ -116,7 +90,7 @@ function requireNationalCode(user: CreditUser): string {
   return code;
 }
 
-function mapAxiosError(error: unknown, step = "barook.axios"): never {
+function mapAxiosError(error: unknown): never {
   if (error instanceof CreditAdapterError) throw error;
 
   const ax = error as AxiosError<{ message?: string; title?: string; detail?: string }>;
@@ -126,19 +100,6 @@ function mapAxiosError(error: unknown, step = "barook.axios"): never {
   const detail =
     (typeof body === "object" && body && (body.message || body.title || body.detail)) ||
     ax.message;
-
-  logCreditError("Barook HTTP error", {
-    step,
-    status,
-    title: title || undefined,
-    detail: String(detail || ""),
-    url: ax.config?.url,
-    method: ax.config?.method,
-    responsePreview:
-      body !== undefined ? JSON.stringify(body).slice(0, 800) : undefined,
-    code: ax.code,
-    message: ax.message,
-  });
 
   if (status === 401 || status === 403) {
     throw new CreditAdapterError("UNAUTHORIZED", String(detail || "Unauthorized"), 502);
@@ -176,29 +137,13 @@ async function authenticate(config: BarookConfig): Promise<string> {
   const key = cacheKey(config);
   const cached = tokenCache.get(key);
   if (cached && cached.expiresAt > Date.now() + 30_000) {
-    logCredit("Barook auth token cache hit", {
-      step: "barook.authenticate.cacheHit",
-      username: config.username,
-      expiresInMs: cached.expiresAt - Date.now(),
-      tokenMasked: maskSecret(cached.token, 4),
-    });
     return cached.token;
   }
 
   const baseUrl = normalizeBaseUrl(config.baseUrl);
-  const authUrl = `${baseUrl}/api/authenticate`;
-  logCredit("Barook authenticate request", {
-    step: "barook.authenticate.request",
-    url: authUrl,
-    username: config.username,
-    passwordMasked: maskSecret(config.password),
-    hasAuthBearer: Boolean(config.authBearer),
-    timeoutMs: config.timeoutMs,
-  });
-
   try {
-    const { data, status } = await axios.post(
-      authUrl,
+    const { data } = await axios.post(
+      `${baseUrl}/api/authenticate`,
       {
         username: config.username,
         password: config.password,
@@ -213,12 +158,6 @@ async function authenticate(config: BarookConfig): Promise<string> {
       },
     );
 
-    logCredit("Barook authenticate response", {
-      step: "barook.authenticate.response",
-      httpStatus: status,
-      payload: summarizePayload(data),
-    });
-
     const token =
       (data && typeof data === "object" && typeof (data as { id_token?: unknown }).id_token === "string"
         ? (data as { id_token: string }).id_token
@@ -228,10 +167,6 @@ async function authenticate(config: BarookConfig): Promise<string> {
         : null);
 
     if (!token) {
-      logCreditError("Barook authenticate missing id_token", {
-        step: "barook.authenticate.noToken",
-        payload: summarizePayload(data),
-      });
       throw new CreditAdapterError("INVALID_RESPONSE", "توکن احراز هویت باروک دریافت نشد", 502);
     }
 
@@ -240,15 +175,10 @@ async function authenticate(config: BarookConfig): Promise<string> {
       token,
       expiresAt: jwtExp ?? Date.now() + 50 * 60_000,
     });
-    logCredit("Barook authenticate succeeded", {
-      step: "barook.authenticate.ok",
-      tokenMasked: maskSecret(token, 4),
-      jwtExp: jwtExp ? new Date(jwtExp).toISOString() : null,
-    });
     return token;
   } catch (error) {
     if (error instanceof CreditAdapterError) throw error;
-    mapAxiosError(error, "barook.authenticate.error");
+    mapAxiosError(error);
   }
 }
 
@@ -259,15 +189,9 @@ async function authorizedGet<T>(
 ): Promise<T> {
   const baseUrl = normalizeBaseUrl(config.baseUrl);
   const url = `${baseUrl}${path}`;
-  logCredit("Barook authorized GET start", {
-    step: "barook.authorizedGet.start",
-    url,
-    params,
-  });
-
   const token = await authenticate(config);
   try {
-    const { data, status } = await axios.get<T>(url, {
+    const { data } = await axios.get<T>(url, {
       params,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -276,30 +200,14 @@ async function authorizedGet<T>(
       },
       timeout: config.timeoutMs,
     });
-    logCredit("Barook authorized GET success", {
-      step: "barook.authorizedGet.ok",
-      url,
-      httpStatus: status,
-      payload: summarizePayload(data),
-    });
     return data;
   } catch (error) {
     const ax = error as AxiosError;
-    logCreditError("Barook authorized GET failed", {
-      step: "barook.authorizedGet.fail",
-      url,
-      status: ax.response?.status,
-      message: ax.message,
-    });
     if (ax.response?.status === 401) {
-      logCredit("Barook token expired; clearing cache and retrying", {
-        step: "barook.authorizedGet.retryAuth",
-        url,
-      });
       tokenCache.delete(cacheKey(config));
       const retryToken = await authenticate(config);
       try {
-        const { data, status } = await axios.get<T>(url, {
+        const { data } = await axios.get<T>(url, {
           params,
           headers: {
             Authorization: `Bearer ${retryToken}`,
@@ -308,26 +216,16 @@ async function authorizedGet<T>(
           },
           timeout: config.timeoutMs,
         });
-        logCredit("Barook authorized GET retry success", {
-          step: "barook.authorizedGet.retry.ok",
-          url,
-          httpStatus: status,
-          payload: summarizePayload(data),
-        });
         return data;
       } catch (retryError) {
-        mapAxiosError(retryError, "barook.authorizedGet.retry.error");
+        mapAxiosError(retryError);
       }
     }
-    mapAxiosError(error, "barook.authorizedGet.error");
+    mapAxiosError(error);
   }
 }
 
 function extractBalance(payload: unknown): number {
-  logCredit("Barook extractBalance", {
-    step: "barook.extractBalance",
-    payload: summarizePayload(payload),
-  });
   if (typeof payload === "number" && Number.isFinite(payload)) return payload;
   if (typeof payload === "string" && /^-?\d+(\.\d+)?$/.test(payload)) return Number(payload);
   if (payload && typeof payload === "object") {
@@ -338,10 +236,6 @@ function extractBalance(payload: unknown): number {
     }
     if (body.data !== undefined) return extractBalance(body.data);
   }
-  logCreditError("Barook extractBalance failed", {
-    step: "barook.extractBalance.fail",
-    payload: summarizePayload(payload),
-  });
   throw new CreditAdapterError("INVALID_RESPONSE", "پاسخ مانده اعتبار باروک نامعتبر است", 502);
 }
 
@@ -455,87 +349,38 @@ export const barookCreditAdapter: CreditAdapter = {
   configSchema: barookConfigSchema,
 
   async getBalance(user, rawConfig): Promise<CreditBalance> {
-    logCredit("Barook getBalance start", {
-      step: "barook.getBalance.start",
-      userId: user.id,
-      rawConfigKeys:
-        rawConfig && typeof rawConfig === "object" ? Object.keys(rawConfig as object) : typeof rawConfig,
-    });
-
-    let config: BarookConfig;
-    try {
-      config = barookConfigSchema.parse(rawConfig ?? {});
-    } catch (error) {
-      logCreditError("Barook config parse failed", {
-        step: "barook.getBalance.configParse",
-        error: String(error),
-      });
-      throw error;
-    }
-
-    logCredit("Barook config parsed", {
-      step: "barook.getBalance.config",
-      baseUrl: config.baseUrl,
-      username: config.username,
-      organizationSlug: config.organizationSlug,
-      timeoutMs: config.timeoutMs,
-    });
-
+    const config = barookConfigSchema.parse(rawConfig ?? {});
     const nationalCode = requireNationalCode(user);
     const org = encodeURIComponent(config.organizationSlug);
-    const path = `/consumer/organization/users/${org}/balance`;
-    logCredit("Barook balance request", {
-      step: "barook.getBalance.request",
-      path,
-      nationalCodeMasked: maskSecret(nationalCode, 1),
-    });
-
-    const payload = await authorizedGet<unknown>(config, path, { nationalCode });
-    const available = extractBalance(payload);
-    logCredit("Barook getBalance done", {
-      step: "barook.getBalance.ok",
-      available,
-    });
+    const payload = await authorizedGet<unknown>(
+      config,
+      `/consumer/organization/users/${org}/balance`,
+      { nationalCode },
+    );
     return {
-      available,
+      available: extractBalance(payload),
       currency: "IRR",
       expiresAt: null,
     };
   },
 
   async getTransactions(user, rawConfig, params): Promise<CursorPage<CreditTransaction>> {
-    logCredit("Barook getTransactions start", {
-      step: "barook.getTransactions.start",
-      userId: user.id,
-      cursor: params.cursor ?? null,
-    });
-
     const config = barookConfigSchema.parse(rawConfig ?? {});
     const nationalCode = requireNationalCode(user);
     const pageNumber = params.cursor ? Number.parseInt(params.cursor, 10) : 0;
     const safePage = Number.isFinite(pageNumber) && pageNumber >= 0 ? pageNumber : 0;
     const org = encodeURIComponent(config.organizationSlug);
     const pageSize = config.pageSize;
-    const path = `/consumer/organization/transactions/${org}/${pageSize}/${safePage}`;
 
-    logCredit("Barook transactions request", {
-      step: "barook.getTransactions.request",
-      path,
-      pageSize,
-      pageNumber: safePage,
-      nationalCodeMasked: maskSecret(nationalCode, 1),
-    });
+    const payload = await authorizedGet<unknown>(
+      config,
+      `/consumer/organization/transactions/${org}/${pageSize}/${safePage}`,
+      { nationalCode },
+    );
 
-    const payload = await authorizedGet<unknown>(config, path, { nationalCode });
     const rows = extractTransactionRows(payload);
     const items = rows.map(mapTransaction);
     const nextCursor = items.length >= pageSize ? String(safePage + 1) : null;
-
-    logCredit("Barook getTransactions done", {
-      step: "barook.getTransactions.ok",
-      itemCount: items.length,
-      nextCursor,
-    });
 
     return { items, nextCursor };
   },

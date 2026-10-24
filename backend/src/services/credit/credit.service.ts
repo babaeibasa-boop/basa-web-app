@@ -1,7 +1,6 @@
 import { CreditFeatureMode, Prisma, type CreditPlatform } from "@prisma/client";
 import { encrypt, decrypt } from "../../lib/crypto.js";
 import { AppError } from "../../lib/errors.js";
-import { logCredit, logCreditError } from "../../lib/logger.js";
 import { prisma } from "../../lib/prisma.js";
 import { assertSlug } from "../../lib/slug.js";
 import { getCreditAdapter, hasCreditAdapter, listCreditAdapters } from "./registry.js";
@@ -38,18 +37,8 @@ type PlatformRow = CreditPlatform;
 function decryptConfig(encryptedConfig: string): unknown {
   try {
     const raw = decrypt(encryptedConfig);
-    const parsed = JSON.parse(raw) as unknown;
-    logCredit("Decrypted platform config", {
-      step: "decryptConfig",
-      configKeys:
-        parsed && typeof parsed === "object" ? Object.keys(parsed as object) : typeof parsed,
-    });
-    return parsed;
-  } catch (error) {
-    logCreditError("Failed to decrypt/parse platform config", {
-      step: "decryptConfig",
-      error: String(error),
-    });
+    return JSON.parse(raw) as unknown;
+  } catch {
     throw new AppError("پیکربندی پلتفرم نامعتبر است", 500);
   }
 }
@@ -60,12 +49,6 @@ function encryptConfig(config: unknown): string {
 
 function mapAdapterError(error: unknown): never {
   if (error instanceof CreditAdapterError) {
-    logCreditError("Mapped CreditAdapterError", {
-      step: "mapAdapterError",
-      code: error.code,
-      message: error.message,
-      statusCode: error.statusCode,
-    });
     if (error.code === "USER_NOT_FOUND") {
       throw new AppError("اعتباری برای این کاربر در این پلتفرم یافت نشد", 404);
     }
@@ -77,19 +60,7 @@ function mapAdapterError(error: unknown): never {
     }
     throw new AppError(error.message || "سرویس پلتفرم در دسترس نیست", error.statusCode || 502);
   }
-  if (error instanceof AppError) {
-    logCreditError("Mapped AppError from adapter path", {
-      step: "mapAdapterError",
-      message: error.message,
-      statusCode: error.statusCode,
-    });
-    throw error;
-  }
-  logCreditError("Mapped unknown adapter error", {
-    step: "mapAdapterError",
-    error: String(error),
-    stack: error instanceof Error ? error.stack : undefined,
-  });
+  if (error instanceof AppError) throw error;
   throw new AppError("خطا در ارتباط با سرویس پلتفرم", 502);
 }
 
@@ -170,20 +141,8 @@ function serializeAdminPlatform(platform: PlatformRow) {
 }
 
 async function loadUser(userId: string): Promise<CreditUser> {
-  logCredit("Loading credit user", { step: "loadUser", userId });
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    logCreditError("Credit user not found", { step: "loadUser", userId });
-    throw new AppError("کاربر یافت نشد", 401);
-  }
-  logCredit("Credit user loaded", {
-    step: "loadUser",
-    userId: user.id,
-    walletId: user.walletId,
-    phone: user.phone,
-    hasNationalCode: Boolean(user.nationalCode),
-    nationalCodeLength: user.nationalCode?.length ?? 0,
-  });
+  if (!user) throw new AppError("کاربر یافت نشد", 401);
   return {
     id: user.id,
     walletId: user.walletId,
@@ -221,60 +180,19 @@ async function withAdapter<T>(
 }
 
 export async function listCreditPlatformsWithBalances(userId: string) {
-  logCredit("Listing credit platforms with balances", {
-    step: "listCreditPlatformsWithBalances.start",
-    userId,
-  });
-
   const platforms = await prisma.creditPlatform.findMany({
     where: { isActive: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-  });
-
-  logCredit("Active credit platforms loaded", {
-    step: "listCreditPlatformsWithBalances.platforms",
-    count: platforms.length,
-    platforms: platforms.map((p) => ({
-      id: p.id,
-      slug: p.slug,
-      adapterKey: p.adapterKey,
-    })),
   });
 
   const user = await loadUser(userId);
 
   const results = await Promise.allSettled(
     platforms.map(async (platform) => {
-      logCredit("Fetching platform balance", {
-        step: "listCreditPlatformsWithBalances.fetchBalance",
-        platformId: platform.id,
-        slug: platform.slug,
-        adapterKey: platform.adapterKey,
-      });
-      try {
-        const adapter = getCreditAdapter(platform.adapterKey);
-        const config = decryptConfig(platform.encryptedConfig);
-        const balance = await adapter.getBalance(user, config);
-        logCredit("Platform balance fetched", {
-          step: "listCreditPlatformsWithBalances.fetchBalance.ok",
-          slug: platform.slug,
-          adapterKey: platform.adapterKey,
-          available: balance.available,
-          currency: balance.currency,
-        });
-        return { platform, balance };
-      } catch (error) {
-        logCreditError("Platform balance fetch failed", {
-          step: "listCreditPlatformsWithBalances.fetchBalance.fail",
-          slug: platform.slug,
-          adapterKey: platform.adapterKey,
-          errorName: error instanceof Error ? error.name : typeof error,
-          errorCode: error instanceof CreditAdapterError ? error.code : undefined,
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-        });
-        throw error;
-      }
+      const adapter = getCreditAdapter(platform.adapterKey);
+      const config = decryptConfig(platform.encryptedConfig);
+      const balance = await adapter.getBalance(user, config);
+      return { platform, balance };
     }),
   );
 
@@ -288,7 +206,6 @@ export async function listCreditPlatformsWithBalances(userId: string) {
     let error = "خطا در دریافت موجودی";
     if (reason instanceof CreditAdapterError) {
       if (reason.code === "USER_NOT_FOUND") {
-        // Prefer provider message when it is already user-facing Persian text.
         error =
           /[آ-ی]/.test(reason.message) && reason.message.length < 200
             ? reason.message
@@ -303,15 +220,6 @@ export async function listCreditPlatformsWithBalances(userId: string) {
         error = "پاسخ نامعتبر از سرویس پلتفرم";
       }
     }
-    logCreditError("Returning balance error for platform card", {
-      step: "listCreditPlatformsWithBalances.result",
-      slug: platform.slug,
-      adapterKey: platform.adapterKey,
-      uiError: error,
-      reasonName: reason instanceof Error ? reason.name : typeof reason,
-      reasonCode: reason instanceof CreditAdapterError ? reason.code : undefined,
-      reasonMessage: reason instanceof Error ? reason.message : String(reason),
-    });
     return { ...base, balance: null, error };
   });
 }
@@ -322,24 +230,9 @@ export async function getCreditPlatformDetail(slug: string) {
 }
 
 export async function getCreditBalance(userId: string, slug: string) {
-  logCredit("getCreditBalance called", { step: "getCreditBalance.start", userId, slug });
   const platform = await loadActivePlatform(slug);
   const adapter = getCreditAdapter(platform.adapterKey);
-  return withAdapter(platform, userId, async (user, config) => {
-    logCredit("Calling adapter.getBalance", {
-      step: "getCreditBalance.adapter",
-      slug,
-      adapterKey: platform.adapterKey,
-      hasNationalCode: Boolean(user.nationalCode),
-    });
-    const balance = await adapter.getBalance(user, config);
-    logCredit("adapter.getBalance succeeded", {
-      step: "getCreditBalance.adapter.ok",
-      slug,
-      available: balance.available,
-    });
-    return balance;
-  });
+  return withAdapter(platform, userId, (user, config) => adapter.getBalance(user, config));
 }
 
 export async function getCreditTransactions(
