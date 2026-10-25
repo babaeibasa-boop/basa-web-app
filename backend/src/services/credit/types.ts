@@ -88,6 +88,13 @@ export interface CreditAdapter {
   label: string;
   capabilities: CreditAdapterCapabilities;
   configSchema: z.ZodTypeAny;
+  /**
+   * Example JSON shown in the admin form after this adapter is selected.
+   * Use placeholder strings for secrets; do not put real credentials here.
+   */
+  configTemplate: Record<string, unknown>;
+  /** Optional Persian notes describing config fields for admins. */
+  configNotes?: string[];
   getBalance(user: CreditUser, config: unknown): Promise<CreditBalance>;
   getTransactions(
     user: CreditUser,

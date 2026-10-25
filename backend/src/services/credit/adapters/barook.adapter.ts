@@ -347,6 +347,20 @@ export const barookCreditAdapter: CreditAdapter = {
     launch: false,
   },
   configSchema: barookConfigSchema,
+  configTemplate: {
+    baseUrl: "https://api.barook.tech/barook",
+    username: "YOUR_ORG_USERNAME",
+    password: "YOUR_PASSWORD",
+    organizationSlug: "roozeno",
+    pageSize: 20,
+    timeoutMs: 30000,
+  },
+  configNotes: [
+    "username و password الزامی هستند.",
+    "baseUrl تست: https://api.barook.tech/barook — عملیاتی: طبق مستند باروک (مثلاً gateway).",
+    "organizationSlug همان بخش مسیر در API است (مثلاً roozeno).",
+    "authBearer فقط در صورت نیاز سرور به توکن اولیه روی /api/authenticate اضافه شود.",
+  ],
 
   async getBalance(user, rawConfig): Promise<CreditBalance> {
     const config = barookConfigSchema.parse(rawConfig ?? {});

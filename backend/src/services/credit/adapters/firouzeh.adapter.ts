@@ -537,6 +537,23 @@ export const firouzehCreditAdapter: CreditAdapter = {
     launch: false,
   },
   configSchema: firouzehConfigSchema,
+  configTemplate: {
+    baseUrl: "https://api.example.com/",
+    authBaseUrl: "https://auth.example.com",
+    clientId: "YOUR_CLIENT_ID",
+    username: "YOUR_USERNAME",
+    password: "YOUR_PASSWORD",
+    scope: "openid",
+    preferredWalletType: "CREDIT",
+    pageSize: 20,
+    timeoutMs: 30000,
+  },
+  configNotes: [
+    "baseUrl آدرس API و authBaseUrl آدرس Keycloak/OpenID هستند.",
+    "clientId، username و password الزامی‌اند.",
+    "preferredWalletType یکی از CREDIT | CASH | LOAN است (پیش‌فرض CREDIT).",
+    "pageSize حداکثر ۲۰ است.",
+  ],
 
   async getBalance(user, rawConfig): Promise<CreditBalance> {
     logCredit("Firouzeh getBalance start", {

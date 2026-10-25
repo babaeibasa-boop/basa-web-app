@@ -245,6 +245,8 @@ export interface CreditAdapterInfo {
     merchants: boolean;
     launch: boolean;
   };
+  configTemplate: Record<string, unknown>;
+  configNotes: string[];
 }
 
 export interface AdminCreditPlatform {

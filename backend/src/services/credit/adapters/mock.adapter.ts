@@ -93,6 +93,14 @@ export const mockCreditAdapter: CreditAdapter = {
     launch: true,
   },
   configSchema: mockConfigSchema,
+  configTemplate: {
+    baseUrl: "https://example.com/credits",
+    apiKey: "optional-api-key",
+  },
+  configNotes: [
+    "برای تست محلی همه فیلدها اختیاری هستند.",
+    "baseUrl فقط برای لینک «استفاده از اعتبار» استفاده می‌شود.",
+  ],
 
   async getBalance(user, config): Promise<CreditBalance> {
     mockConfigSchema.parse(config ?? {});

@@ -27,6 +27,11 @@ export const templateCreditAdapter: CreditAdapter = {
     launch: false,
   },
   configSchema,
+  configTemplate: {
+    baseUrl: "https://api.example.com",
+    apiKey: "YOUR_API_KEY",
+  },
+  configNotes: ["Replace placeholders before registering a real adapter."],
 
   async getBalance(_user, config) {
     configSchema.parse(config);

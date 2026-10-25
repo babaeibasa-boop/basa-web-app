@@ -24,8 +24,8 @@ const emptyForm = {
   name: "",
   slug: "",
   logoUrl: "",
-  adapterKey: "mock",
-  configText: "{}",
+  adapterKey: "",
+  configText: "",
   installmentsMode: "DISABLED" as CreditFeatureMode,
   installmentsUrl: "",
   merchantsMode: "DISABLED" as CreditFeatureMode,
@@ -35,6 +35,10 @@ const emptyForm = {
   isActive: true,
   sortOrder: "0",
 };
+
+function formatConfigTemplate(template: Record<string, unknown>): string {
+  return JSON.stringify(template, null, 2);
+}
 
 export default function AdminCreditPlatformsPage() {
   const queryClient = useQueryClient();
@@ -55,6 +59,31 @@ export default function AdminCreditPlatformsPage() {
 
   const adapters = adaptersQuery.data?.data ?? [];
   const selectedAdapter = adapters.find((adapter) => adapter.key === form.adapterKey);
+  const configTemplateText = selectedAdapter
+    ? formatConfigTemplate(selectedAdapter.configTemplate)
+    : "";
+
+  function applyAdapterSelection(adapterKey: string) {
+    const adapter = adapters.find((item) => item.key === adapterKey);
+    const templateText = adapter ? formatConfigTemplate(adapter.configTemplate) : "";
+    setForm((prev) => {
+      const previousAdapter = adapters.find((item) => item.key === prev.adapterKey);
+      const previousTemplate = previousAdapter
+        ? formatConfigTemplate(previousAdapter.configTemplate)
+        : "";
+      const trimmed = prev.configText.trim();
+      const switchingAdapterWhileEditing = Boolean(editing && adapterKey !== editing.adapterKey);
+      const shouldFillTemplate =
+        (!trimmed || trimmed === "{}" || trimmed === previousTemplate) &&
+        (!isEditing || switchingAdapterWhileEditing);
+
+      return {
+        ...prev,
+        adapterKey,
+        ...(shouldFillTemplate ? { configText: templateText } : {}),
+      };
+    });
+  }
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -208,9 +237,10 @@ export default function AdminCreditPlatformsPage() {
               <select
                 id="credit-adapter"
                 value={form.adapterKey}
-                onChange={(e) => setForm({ ...form, adapterKey: e.target.value })}
+                onChange={(e) => applyAdapterSelection(e.target.value)}
                 className="h-10 w-full rounded-lg border bg-background px-3 text-sm"
               >
+                <option value="">انتخاب آداپتر</option>
                 {adapters.map((adapter) => (
                   <option key={adapter.key} value={adapter.key}>
                     {adapter.label}
@@ -227,23 +257,57 @@ export default function AdminCreditPlatformsPage() {
                 onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
               />
             </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="credit-config">
-                پیکربندی JSON {isEditing ? "(برای حفظ فعلی خالی بگذارید)" : ""}
-              </Label>
-              <textarea
-                id="credit-config"
-                dir="ltr"
-                rows={4}
-                value={form.configText}
-                onChange={(e) => setForm({ ...form, configText: e.target.value })}
-                placeholder='{"apiKey":"...","baseUrl":"..."}'
-                className="w-full rounded-lg border bg-background px-3 py-2 font-mono text-sm"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                مقادیر محرمانه فقط هنگام ذخیره ارسال می‌شوند و در لیست نمایش داده نمی‌شوند.
-              </p>
-            </div>
+            {!form.adapterKey ? (
+              <div className="sm:col-span-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                پس از انتخاب آداپتر، قالب پیکربندی موردنیاز نمایش داده می‌شود.
+              </div>
+            ) : (
+              <div className="sm:col-span-2 space-y-3">
+                <div className="rounded-lg border bg-muted/40 p-3">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium">قالب پیکربندی {selectedAdapter?.label}</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setForm({ ...form, configText: configTemplateText })}
+                    >
+                      اعمال قالب
+                    </Button>
+                  </div>
+                  <pre
+                    dir="ltr"
+                    className="overflow-x-auto rounded-md bg-background p-3 text-xs leading-5"
+                  >
+                    {configTemplateText}
+                  </pre>
+                  {selectedAdapter && selectedAdapter.configNotes.length > 0 && (
+                    <ul className="mt-3 list-disc space-y-1 pr-5 text-xs text-muted-foreground">
+                      {selectedAdapter.configNotes.map((note) => (
+                        <li key={note}>{note}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="credit-config">
+                    پیکربندی JSON {isEditing ? "(برای حفظ فعلی خالی بگذارید)" : ""}
+                  </Label>
+                  <textarea
+                    id="credit-config"
+                    dir="ltr"
+                    rows={8}
+                    value={form.configText}
+                    onChange={(e) => setForm({ ...form, configText: e.target.value })}
+                    placeholder={configTemplateText}
+                    className="w-full rounded-lg border bg-background px-3 py-2 font-mono text-sm"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    مقادیر محرمانه فقط هنگام ذخیره ارسال می‌شوند و در لیست نمایش داده نمی‌شوند.
+                  </p>
+                </div>
+              </div>
+            )}
             <div>
               <Label htmlFor="credit-installments-mode">اقساط</Label>
               <select

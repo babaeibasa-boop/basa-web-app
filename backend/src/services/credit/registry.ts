@@ -14,11 +14,15 @@ export function listCreditAdapters(): Array<{
   key: string;
   label: string;
   capabilities: CreditAdapter["capabilities"];
+  configTemplate: Record<string, unknown>;
+  configNotes: string[];
 }> {
   return Array.from(adapters.values()).map((adapter) => ({
     key: adapter.key,
     label: adapter.label,
     capabilities: adapter.capabilities,
+    configTemplate: adapter.configTemplate,
+    configNotes: adapter.configNotes ?? [],
   }));
 }
 
