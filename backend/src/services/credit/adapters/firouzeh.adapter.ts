@@ -11,9 +11,9 @@ import {
 } from "../types.js";
 
 /**
- * Firouzeh Digital Open Credit API v2.1.8
+ * Firouzeh Digital Open Credit API v2.1.9
  *
- * Auth: Keycloak password / refresh_token grants
+ * Auth: Keycloak client_credentials / refresh_token grants
  *   POST {authBaseUrl}/realms/firouzeh/protocol/openid-connect/token
  * Wallets:
  *   GET {baseUrl}cf/api/v1/organization/wallet/{national_id}/
@@ -71,9 +71,7 @@ const firouzehConfigSchema = z.object({
     z.string().url(),
   ),
   clientId: z.string().min(1),
-  username: z.string().min(1),
-  password: z.string().min(1),
-  scope: z.string().min(1).default("openid"),
+  clientSecret: z.string().min(1),
   /** Prefer CREDIT wallets for balance/transactions (per docs: CREDIT | CASH | LOAN). */
   preferredWalletType: z.enum(["CREDIT", "CASH", "LOAN"]).default("CREDIT"),
   /** Docs: page_size max is 20. */
@@ -110,7 +108,7 @@ export function clearFirouzehTokenCache(): void {
 }
 
 function cacheKey(config: FirouzehConfig): string {
-  return `${config.authBaseUrl}|${config.clientId}|${config.username}`;
+  return `${config.authBaseUrl}|${config.clientId}`;
 }
 
 function requireNationalCode(user: CreditUser): string {
@@ -200,7 +198,6 @@ async function requestToken(
     step,
     url,
     clientId: config.clientId,
-    username: config.username,
     grantType: body.get("grant_type"),
     timeoutMs: config.timeoutMs,
   });
@@ -266,7 +263,7 @@ async function authenticate(config: FirouzehConfig): Promise<string> {
   if (cached && cached.expiresAt > Date.now() + 5_000) {
     logCredit("Firouzeh auth token cache hit", {
       step: "firouzeh.authenticate.cacheHit",
-      username: config.username,
+      clientId: config.clientId,
       expiresInMs: cached.expiresAt - Date.now(),
       tokenMasked: maskSecret(cached.accessToken, 4),
     });
@@ -278,12 +275,13 @@ async function authenticate(config: FirouzehConfig): Promise<string> {
       const body = new URLSearchParams({
         grant_type: "refresh_token",
         client_id: config.clientId,
+        client_secret: config.clientSecret,
         refresh_token: cached.refreshToken,
       });
       const entry = await requestToken(config, body, "firouzeh.authenticate.refresh");
       return entry.accessToken;
     } catch (error) {
-      logCreditError("Firouzeh refresh failed; falling back to password grant", {
+      logCreditError("Firouzeh refresh failed; falling back to client_credentials", {
         step: "firouzeh.authenticate.refresh.fail",
         error: String(error),
       });
@@ -292,13 +290,11 @@ async function authenticate(config: FirouzehConfig): Promise<string> {
   }
 
   const body = new URLSearchParams({
-    grant_type: "password",
+    grant_type: "client_credentials",
     client_id: config.clientId,
-    username: config.username,
-    password: config.password,
-    scope: config.scope,
+    client_secret: config.clientSecret,
   });
-  const entry = await requestToken(config, body, "firouzeh.authenticate.password");
+  const entry = await requestToken(config, body, "firouzeh.authenticate.clientCredentials");
   return entry.accessToken;
 }
 
@@ -541,16 +537,14 @@ export const firouzehCreditAdapter: CreditAdapter = {
     baseUrl: "https://api.example.com/",
     authBaseUrl: "https://auth.example.com",
     clientId: "YOUR_CLIENT_ID",
-    username: "YOUR_USERNAME",
-    password: "YOUR_PASSWORD",
-    scope: "openid",
+    clientSecret: "YOUR_CLIENT_SECRET",
     preferredWalletType: "CREDIT",
     pageSize: 20,
     timeoutMs: 30000,
   },
   configNotes: [
     "baseUrl آدرس API و authBaseUrl آدرس Keycloak/OpenID هستند.",
-    "clientId، username و password الزامی‌اند.",
+    "clientId و clientSecret الزامی‌اند (grant_type=client_credentials).",
     "preferredWalletType یکی از CREDIT | CASH | LOAN است (پیش‌فرض CREDIT).",
     "pageSize حداکثر ۲۰ است.",
   ],
@@ -579,7 +573,6 @@ export const firouzehCreditAdapter: CreditAdapter = {
       baseUrl: config.baseUrl,
       authBaseUrl: config.authBaseUrl,
       clientId: config.clientId,
-      username: config.username,
       preferredWalletType: config.preferredWalletType,
       timeoutMs: config.timeoutMs,
     });

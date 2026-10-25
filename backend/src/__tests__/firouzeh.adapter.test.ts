@@ -31,8 +31,7 @@ const config = {
   baseUrl: "https://api.firouzeh.example/",
   authBaseUrl: "https://auth.firouzeh.example",
   clientId: "org-client",
-  username: "org-user",
-  password: "secret",
+  clientSecret: "org-secret",
   pageSize: 2,
 };
 
@@ -56,7 +55,7 @@ describe("firouzehCreditAdapter", () => {
     ).rejects.toMatchObject({ code: "USER_NOT_FOUND" } satisfies Partial<CreditAdapterError>);
   });
 
-  it("authenticates with password grant then sums CREDIT wallet balances", async () => {
+  it("authenticates with client_credentials then sums CREDIT wallet balances", async () => {
     axiosMock.get.mockResolvedValue({
       data: [
         {
@@ -91,11 +90,14 @@ describe("firouzehCreditAdapter", () => {
 
     expect(axiosMock.post).toHaveBeenCalledWith(
       "https://auth.firouzeh.example/realms/firouzeh/protocol/openid-connect/token",
-      expect.stringContaining("grant_type=password"),
+      expect.stringMatching(/grant_type=client_credentials/),
       expect.objectContaining({
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       }),
     );
+    const tokenBody = String(axiosMock.post.mock.calls[0]?.[1] ?? "");
+    expect(tokenBody).toContain("client_id=org-client");
+    expect(tokenBody).toContain("client_secret=org-secret");
     expect(axiosMock.get).toHaveBeenCalledWith(
       "https://api.firouzeh.example/cf/api/v1/organization/wallet/0012345678/",
       expect.objectContaining({
@@ -177,7 +179,7 @@ describe("firouzehCreditAdapter", () => {
       ...config,
       baseUrl: "api.firouzeh.example",
       authBaseUrl: "auth.firouzeh.example/",
-      username: "host-only-user",
+      clientSecret: "host-only-secret",
     });
 
     expect(axiosMock.post).toHaveBeenCalledWith(
