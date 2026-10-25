@@ -196,31 +196,16 @@ export async function listCreditPlatformsWithBalances(userId: string) {
     }),
   );
 
-  return results.map((result, index) => {
+  return results.flatMap((result, index) => {
+    if (result.status !== "fulfilled") return [];
     const platform = platforms[index]!;
-    const base = serializePublicPlatform(platform);
-    if (result.status === "fulfilled") {
-      return { ...base, balance: result.value.balance as CreditBalance, error: null as string | null };
-    }
-    const reason = result.reason;
-    let error = "خطا در دریافت موجودی";
-    if (reason instanceof CreditAdapterError) {
-      if (reason.code === "USER_NOT_FOUND") {
-        error =
-          /[آ-ی]/.test(reason.message) && reason.message.length < 200
-            ? reason.message
-            : "اعتباری برای این کاربر یافت نشد";
-      } else if (reason.code === "UNAUTHORIZED") {
-        error = "احراز هویت پلتفرم ناموفق بود";
-      } else if (reason.code === "UNAVAILABLE") {
-        error = reason.message.includes("باروک") || reason.message.includes("اتصال")
-          ? reason.message
-          : "سرویس پلتفرم در دسترس نیست";
-      } else if (reason.code === "INVALID_RESPONSE") {
-        error = "پاسخ نامعتبر از سرویس پلتفرم";
-      }
-    }
-    return { ...base, balance: null, error };
+    return [
+      {
+        ...serializePublicPlatform(platform),
+        balance: result.value.balance as CreditBalance,
+        error: null as string | null,
+      },
+    ];
   });
 }
 

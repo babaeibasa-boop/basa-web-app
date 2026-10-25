@@ -72,7 +72,7 @@ beforeEach(() => {
 });
 
 describe("listCreditPlatformsWithBalances", () => {
-  it("returns balances for healthy platforms and errors for failed ones", async () => {
+  it("returns only platforms with a successful balance", async () => {
     const healthy = platformRow({ id: "cp-1", slug: "ok" });
     const broken = platformRow({ id: "cp-2", slug: "broken", adapterKey: "mock" });
     prisma.creditPlatform.findMany.mockResolvedValue([healthy, broken]);
@@ -87,11 +87,28 @@ describe("listCreditPlatformsWithBalances", () => {
 
     const result = await listCreditPlatformsWithBalances(user.id);
 
-    expect(result).toHaveLength(2);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.slug).toBe("ok");
     expect(result[0]?.balance?.available).toBe(1_000_000);
     expect(result[0]?.error).toBeNull();
-    expect(result[1]?.balance).toBeNull();
-    expect(result[1]?.error).toContain("اعتباری");
+    getBalance.mockRestore();
+  });
+
+  it("includes platforms with a zero available balance", async () => {
+    const zeroBalance = platformRow({ id: "cp-zero", slug: "zero" });
+    prisma.creditPlatform.findMany.mockResolvedValue([zeroBalance]);
+
+    const getBalance = vi.spyOn(registry.getCreditAdapter("mock"), "getBalance").mockResolvedValueOnce({
+      available: 0,
+      currency: "IRR",
+    });
+
+    const result = await listCreditPlatformsWithBalances(user.id);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.slug).toBe("zero");
+    expect(result[0]?.balance?.available).toBe(0);
+    expect(result[0]?.error).toBeNull();
     getBalance.mockRestore();
   });
 });

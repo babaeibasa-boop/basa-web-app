@@ -1,12 +1,14 @@
 import { z } from "zod";
-import type {
-  CreditAdapter,
-  CreditBalance,
-  CreditInstallment,
-  CreditMerchant,
-  CreditTransaction,
-  CreditUser,
-  CursorPage,
+import { normalizePhone } from "../../../lib/reftek-access.js";
+import {
+  CreditAdapterError,
+  type CreditAdapter,
+  type CreditBalance,
+  type CreditInstallment,
+  type CreditMerchant,
+  type CreditTransaction,
+  type CreditUser,
+  type CursorPage,
 } from "../types.js";
 
 const mockConfigSchema = z
@@ -18,6 +20,21 @@ const mockConfigSchema = z
   .default({});
 
 const PAGE_SIZE = 5;
+
+/** Digits-only phones that receive a mock credit balance (any common IR format accepted). */
+const MOCK_ALLOWED_PHONES = new Set(
+  ["989381333551", "989131864939", "989134435372"].map(normalizePhone),
+);
+
+function assertMockBalanceAllowed(user: CreditUser): void {
+  if (!MOCK_ALLOWED_PHONES.has(normalizePhone(user.phone))) {
+    throw new CreditAdapterError(
+      "USER_NOT_FOUND",
+      "اعتباری برای این کاربر یافت نشد",
+      404,
+    );
+  }
+}
 
 function seedFromUser(user: CreditUser): number {
   let hash = 0;
@@ -104,6 +121,7 @@ export const mockCreditAdapter: CreditAdapter = {
 
   async getBalance(user, config): Promise<CreditBalance> {
     mockConfigSchema.parse(config ?? {});
+    assertMockBalanceAllowed(user);
     const seed = seedFromUser(user);
     const available = ((seed % 800) + 200) * 100_000;
     return {
