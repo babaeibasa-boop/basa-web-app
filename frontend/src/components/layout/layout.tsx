@@ -180,7 +180,7 @@ export function CreditsLayout({ children }: { children: React.ReactNode }) {
               {/* <WalletCards className="h-4 w-4" /> */}
               <img src="/favicon.png" className="w-15 dark:brightness-0 dark:invert"/>
             </span>
-            <h1 className="text-base font-bold">هاب اعتباری باسا</h1>
+            <h1 className="text-base font-bold">طرح‌های اعتباری باسا</h1>
           </div>
           <div className="flex min-w-0 items-center gap-2">
             {displayName && (
