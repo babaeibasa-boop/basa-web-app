@@ -1,5 +1,5 @@
 import { Link, useLocation, useParams } from "react-router-dom";
-import { Moon, Sun, Plus, Package, AppWindow, User, Ticket, WalletCards } from "lucide-react";
+import { Moon, Sun, Plus, Package, AppWindow, User, Ticket } from "lucide-react";
 import { useAuth, useAdminAuth, useTheme } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
