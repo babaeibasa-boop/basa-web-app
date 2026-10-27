@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, AdminAuthProvider, useAuth, useAdminAuth } from "@/hooks/use-auth";
 import { ToastProvider } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/badge";
-import { isReftekAccessAllowed } from "@/lib/reftek-access";
 import { isCreditsPath, splashLoginSearch, voucherPlatformSlugFromPath } from "@/lib/utils";
 import SplashPage from "@/pages/user/SplashPage";
 import OrdersPage from "@/pages/user/OrdersPage";
@@ -56,8 +55,11 @@ function UserGuard({ children }: { children: React.ReactNode }) {
 }
 
 function ReftekAccessGuard({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  if (!isReftekAccessAllowed(user?.phone)) {
+  const { user, profileReady } = useAuth();
+  if (!profileReady && user?.isDeveloper === undefined) {
+    return <PageFallback />;
+  }
+  if (!user?.isDeveloper) {
     return <Navigate to="/reftek" replace />;
   }
   return <>{children}</>;

@@ -12,6 +12,9 @@ import {
   phones,
   addPhone,
   deletePhone,
+  developerPhones,
+  createDeveloperPhone,
+  deleteDeveloperPhone,
   voucherPlatforms,
   addVoucherPlatform,
   patchVoucherPlatform,
@@ -53,6 +56,9 @@ router.get("/users", authenticateAdmin, users);
 router.get("/phones", authenticateAdmin, phones);
 router.post("/phones", authenticateAdmin, addPhone);
 router.delete("/phones/:id", authenticateAdmin, deletePhone);
+router.get("/developer-phones", authenticateAdmin, developerPhones);
+router.post("/developer-phones", authenticateAdmin, createDeveloperPhone);
+router.delete("/developer-phones/:id", authenticateAdmin, deleteDeveloperPhone);
 router.get("/categories", authenticateAdmin, categories);
 router.post("/categories", authenticateAdmin, addCategory);
 router.patch("/categories/:id", authenticateAdmin, patchCategory);

@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { authApi } from "@/api";
 import type { User } from "@/types";
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  profileReady: boolean;
   login: (token: string, user: User) => void;
   updateUser: (user: User) => void;
   logout: () => void;
@@ -12,12 +14,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+function storedUser(): User | null {
+  const raw = localStorage.getItem("user");
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as User;
+    if (!parsed || typeof parsed !== "object") return null;
+    return { ...parsed, isDeveloper: undefined };
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [user, setUser] = useState<User | null>(storedUser);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("userToken"));
+  const [profileReady, setProfileReady] = useState(() => !localStorage.getItem("userToken"));
 
   const login = useCallback((newToken: string, newUser: User) => {
     localStorage.setItem("userToken", newToken);
@@ -36,10 +48,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("user");
     setToken(null);
     setUser(null);
+    setProfileReady(true);
   }, []);
 
+  useEffect(() => {
+    if (!token) {
+      setProfileReady(true);
+      return;
+    }
+
+    let cancelled = false;
+    authApi
+      .getProfile()
+      .then((res) => {
+        if (!cancelled && res.data) updateUser(res.data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setProfileReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, updateUser]);
+
   return (
-    <AuthContext.Provider value={{ user, token, login, updateUser, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider
+      value={{ user, token, profileReady, login, updateUser, logout, isAuthenticated: !!token }}
+    >
       {children}
     </AuthContext.Provider>
   );

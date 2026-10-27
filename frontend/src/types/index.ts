@@ -10,6 +10,7 @@ export interface User {
   family: string;
   phone: string;
   hasNationalCode?: boolean;
+  isDeveloper?: boolean;
 }
 
 export interface Invoice {
@@ -187,6 +188,7 @@ export interface CreditPlatformSummary {
   merchantsUrl: string | null;
   hasLaunch: boolean;
   instructions: string;
+  isActive: boolean;
   sortOrder: number;
   balance: CreditBalance | null;
   error: string | null;

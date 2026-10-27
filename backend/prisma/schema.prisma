@@ -200,6 +200,14 @@ model AppSetting {
   @@map("app_settings")
 }
 
+model DeveloperPhone {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("developer_phones")
+}
+
 enum CreditFeatureMode {
   API
   REDIRECT

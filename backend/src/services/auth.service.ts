@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma.js";
 import { config } from "../lib/config.js";
 import { decrypt } from "../lib/crypto.js";
 import { AppError } from "../lib/errors.js";
+import { isDeveloperPhone } from "../lib/developer-access.js";
 import { isValidNationalCode, parseNationalCode, toPublicUser } from "../lib/national-code.js";
 import { walletService } from "./wallet.service.js";
 import { signUserToken } from "../middleware/auth.js";
@@ -65,7 +66,20 @@ export async function authenticateWithWalletToken(
 
   return {
     token,
-    user: toPublicUser(user),
+    user: await toPublicUserWithAccess(user),
+  };
+}
+
+async function toPublicUserWithAccess(user: {
+  id: string;
+  name: string;
+  family: string;
+  phone: string;
+  nationalCode?: string | null;
+}) {
+  return {
+    ...toPublicUser(user),
+    isDeveloper: await isDeveloperPhone(user.phone),
   };
 }
 
@@ -77,5 +91,5 @@ export async function getUserProfile(userId: string) {
   if (!user) {
     throw new AppError("کاربر یافت نشد", 401);
   }
-  return toPublicUser(user);
+  return toPublicUserWithAccess(user);
 }

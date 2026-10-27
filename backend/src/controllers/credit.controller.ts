@@ -31,7 +31,7 @@ export async function listPlatforms(req: Request, res: Response, next: NextFunct
 
 export async function getPlatform(req: Request, res: Response, next: NextFunction) {
   try {
-    const platform = await getCreditPlatformDetail(String(req.params.slug));
+    const platform = await getCreditPlatformDetail(req.user!.userId, String(req.params.slug));
     sendSuccess(res, platform);
   } catch (error) {
     next(error);
@@ -77,7 +77,7 @@ export async function getMerchants(req: Request, res: Response, next: NextFuncti
         : undefined;
     const query =
       typeof req.query.q === "string" && req.query.q.trim() ? req.query.q.trim() : undefined;
-    const result = await getCreditMerchants(String(req.params.slug), { cursor, query });
+    const result = await getCreditMerchants(req.user!.userId, String(req.params.slug), { cursor, query });
     sendSuccess(res, result);
   } catch (error) {
     next(error);

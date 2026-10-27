@@ -36,6 +36,11 @@ import {
 } from "../services/category.service.js";
 import { getAdminSettings, updateAdminSettings } from "../services/settings.service.js";
 import {
+  addDeveloperPhone,
+  listDeveloperPhones,
+  removeDeveloperPhone,
+} from "../lib/developer-access.js";
+import {
   createCreditPlatform,
   deleteCreditPlatform,
   listAdminCreditPlatforms,
@@ -234,6 +239,34 @@ export async function addPhone(req: Request, res: Response, next: NextFunction) 
 export async function deletePhone(req: Request, res: Response, next: NextFunction) {
   try {
     await removeAdminPhone(String(req.params.id));
+    sendSuccess(res, null, "شماره حذف شد");
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function developerPhones(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const phones = await listDeveloperPhones();
+    sendSuccess(res, phones);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createDeveloperPhone(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { phone } = addPhoneSchema.parse(req.body);
+    const result = await addDeveloperPhone(phone);
+    sendSuccess(res, result, "شماره اضافه شد", 201);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteDeveloperPhone(req: Request, res: Response, next: NextFunction) {
+  try {
+    await removeDeveloperPhone(String(req.params.id));
     sendSuccess(res, null, "شماره حذف شد");
   } catch (error) {
     next(error);

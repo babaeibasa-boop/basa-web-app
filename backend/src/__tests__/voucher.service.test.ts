@@ -33,6 +33,9 @@ const { prisma, walletService } = vi.hoisted(() => {
     user: {
       findUnique: vi.fn(),
     },
+    developerPhone: {
+      findMany: vi.fn(async () => [{ phone: "989381333551" }]),
+    },
     $transaction: vi.fn(),
   };
   const walletService = {

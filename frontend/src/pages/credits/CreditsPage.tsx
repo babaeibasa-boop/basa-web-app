@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { creditApi } from "@/api";
 import { CreditsLayout } from "@/components/layout/layout";
-import { EmptyState } from "@/components/ui/badge";
+import { Badge, EmptyState } from "@/components/ui/badge";
 import { cn, formatDate, formatPrice } from "@/lib/utils";
 import type { CreditPlatformSummary } from "@/types";
 
@@ -354,7 +354,14 @@ function PlatformCard({ platform, index }: { platform: CreditPlatformSummary; in
               className="h-12 w-12 shrink-0 rounded-2xl shadow-md ring-1 ring-white/40"
             />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-semibold">{platform.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="truncate text-base font-semibold">{platform.name}</p>
+                {!platform.isActive && (
+                  <Badge variant="warning" className="shrink-0">
+                    غیرفعال
+                  </Badge>
+                )}
+              </div>
               <p className="truncate text-xs text-white/70" dir="ltr">
                 {platform.slug}
               </p>
@@ -428,7 +435,14 @@ function PlatformCard({ platform, index }: { platform: CreditPlatformSummary; in
               className="h-12 w-12 shrink-0 rounded-2xl bg-muted text-foreground"
             />
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold">{platform.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="truncate font-semibold">{platform.name}</p>
+                {!platform.isActive && (
+                  <Badge variant="warning" className="shrink-0">
+                    غیرفعال
+                  </Badge>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">موجودی دریافت نشد</p>
             </div>
             <ChevronLeft className="h-5 w-5 shrink-0 text-muted-foreground transition duration-300 motion-safe:group-hover:-translate-x-1" />

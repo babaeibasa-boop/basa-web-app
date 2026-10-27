@@ -1,5 +1,6 @@
 import { CreditFeatureMode, Prisma, type CreditPlatform } from "@prisma/client";
 import { encrypt, decrypt } from "../../lib/crypto.js";
+import { isDeveloperPhone } from "../../lib/developer-access.js";
 import { AppError } from "../../lib/errors.js";
 import { prisma } from "../../lib/prisma.js";
 import { assertSlug } from "../../lib/slug.js";
@@ -33,6 +34,11 @@ export type UpdateCreditPlatformInput = Partial<
 };
 
 type PlatformRow = CreditPlatform;
+
+type PublicPlatformCard = ReturnType<typeof serializePublicPlatform> & {
+  balance: CreditBalance | null;
+  error: string | null;
+};
 
 function decryptConfig(encryptedConfig: string): unknown {
   try {
@@ -115,6 +121,7 @@ function serializePublicPlatform(platform: PlatformRow) {
     merchantsUrl: platform.merchantsUrl,
     hasLaunch,
     instructions: platform.instructions,
+    isActive: platform.isActive,
     sortOrder: platform.sortOrder,
   };
 }
@@ -153,24 +160,47 @@ async function loadUser(userId: string): Promise<CreditUser> {
   };
 }
 
-async function loadActivePlatform(slug: string): Promise<PlatformRow> {
+async function loadPlatformForUser(
+  slug: string,
+  userId: string,
+): Promise<{ platform: PlatformRow; user: CreditUser | null }> {
   const platform = await prisma.creditPlatform.findUnique({ where: { slug } });
-  if (!platform || !platform.isActive) {
+  if (!platform) {
     throw new AppError("پلتفرم اعتبار یافت نشد", 404);
+  }
+  if (!platform.isActive) {
+    const user = await loadUser(userId);
+    if (!(await isDeveloperPhone(user.phone))) {
+      throw new AppError("پلتفرم اعتبار یافت نشد", 404);
+    }
+    if (!hasCreditAdapter(platform.adapterKey)) {
+      throw new AppError("آداپتر پلتفرم پیکربندی نشده است", 500);
+    }
+    return { platform, user };
   }
   if (!hasCreditAdapter(platform.adapterKey)) {
     throw new AppError("آداپتر پلتفرم پیکربندی نشده است", 500);
   }
-  return platform;
+  return { platform, user: null };
+}
+
+function balanceErrorText(error: unknown): string {
+  if (
+    (error instanceof AppError || error instanceof CreditAdapterError) &&
+    error.message.trim()
+  ) {
+    return error.message;
+  }
+  return "موجودی در دسترس نیست";
 }
 
 async function withAdapter<T>(
   platform: PlatformRow,
   userId: string,
   fn: (user: CreditUser, config: unknown) => Promise<T>,
+  knownUser?: CreditUser | null,
 ): Promise<T> {
-  const adapter = getCreditAdapter(platform.adapterKey);
-  const user = await loadUser(userId);
+  const user = knownUser ?? (await loadUser(userId));
   const config = decryptConfig(platform.encryptedConfig);
   try {
     return await fn(user, config);
@@ -180,12 +210,12 @@ async function withAdapter<T>(
 }
 
 export async function listCreditPlatformsWithBalances(userId: string) {
+  const user = await loadUser(userId);
+  const developer = await isDeveloperPhone(user.phone);
   const platforms = await prisma.creditPlatform.findMany({
-    where: { isActive: true },
+    where: developer ? {} : { isActive: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
-
-  const user = await loadUser(userId);
 
   const results = await Promise.allSettled(
     platforms.map(async (platform) => {
@@ -196,28 +226,39 @@ export async function listCreditPlatformsWithBalances(userId: string) {
     }),
   );
 
-  return results.flatMap((result, index) => {
-    if (result.status !== "fulfilled") return [];
+  return results.flatMap((result, index): PublicPlatformCard[] => {
     const platform = platforms[index]!;
+    if (result.status !== "fulfilled") {
+      if (developer && !platform.isActive) {
+        return [
+          {
+            ...serializePublicPlatform(platform),
+            balance: null,
+            error: balanceErrorText(result.reason),
+          },
+        ];
+      }
+      return [];
+    }
     return [
       {
         ...serializePublicPlatform(platform),
-        balance: result.value.balance as CreditBalance,
-        error: null as string | null,
+        balance: result.value.balance,
+        error: null,
       },
     ];
   });
 }
 
-export async function getCreditPlatformDetail(slug: string) {
-  const platform = await loadActivePlatform(slug);
+export async function getCreditPlatformDetail(userId: string, slug: string) {
+  const { platform } = await loadPlatformForUser(slug, userId);
   return serializePublicPlatform(platform);
 }
 
 export async function getCreditBalance(userId: string, slug: string) {
-  const platform = await loadActivePlatform(slug);
+  const { platform, user } = await loadPlatformForUser(slug, userId);
   const adapter = getCreditAdapter(platform.adapterKey);
-  return withAdapter(platform, userId, (user, config) => adapter.getBalance(user, config));
+  return withAdapter(platform, userId, (creditUser, config) => adapter.getBalance(creditUser, config), user);
 }
 
 export async function getCreditTransactions(
@@ -225,15 +266,18 @@ export async function getCreditTransactions(
   slug: string,
   cursor?: string,
 ) {
-  const platform = await loadActivePlatform(slug);
+  const { platform, user } = await loadPlatformForUser(slug, userId);
   const adapter = getCreditAdapter(platform.adapterKey);
-  return withAdapter(platform, userId, (user, config) =>
-    adapter.getTransactions(user, config, { cursor }),
+  return withAdapter(
+    platform,
+    userId,
+    (creditUser, config) => adapter.getTransactions(creditUser, config, { cursor }),
+    user,
   );
 }
 
 export async function getCreditInstallments(userId: string, slug: string) {
-  const platform = await loadActivePlatform(slug);
+  const { platform, user } = await loadPlatformForUser(slug, userId);
 
   if (platform.installmentsMode === CreditFeatureMode.DISABLED) {
     throw new AppError("اقساط برای این پلتفرم فعال نیست", 404);
@@ -246,17 +290,21 @@ export async function getCreditInstallments(userId: string, slug: string) {
   if (!adapter.getInstallments) {
     throw new AppError("آداپتر از اقساط پشتیبانی نمی‌کند", 502);
   }
-  const items = await withAdapter(platform, userId, (user, config) =>
-    adapter.getInstallments!(user, config),
+  const items = await withAdapter(
+    platform,
+    userId,
+    (creditUser, config) => adapter.getInstallments!(creditUser, config),
+    user,
   );
   return { mode: "api" as const, items };
 }
 
 export async function getCreditMerchants(
+  userId: string,
   slug: string,
   params: { cursor?: string; query?: string },
 ) {
-  const platform = await loadActivePlatform(slug);
+  const { platform } = await loadPlatformForUser(slug, userId);
 
   if (platform.merchantsMode === CreditFeatureMode.DISABLED) {
     throw new AppError("پذیرندگان برای این پلتفرم فعال نیست", 404);
@@ -279,13 +327,16 @@ export async function getCreditMerchants(
 }
 
 export async function getCreditLaunchUrl(userId: string, slug: string) {
-  const platform = await loadActivePlatform(slug);
+  const { platform, user } = await loadPlatformForUser(slug, userId);
   const adapter = getCreditAdapter(platform.adapterKey);
 
   if (adapter.getLaunchUrl) {
     try {
-      const url = await withAdapter(platform, userId, (user, config) =>
-        adapter.getLaunchUrl!(user, config),
+      const url = await withAdapter(
+        platform,
+        userId,
+        (creditUser, config) => adapter.getLaunchUrl!(creditUser, config),
+        user,
       );
       return { url };
     } catch (error) {

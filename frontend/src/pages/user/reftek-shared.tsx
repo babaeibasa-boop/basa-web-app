@@ -16,7 +16,6 @@ import {
 import { reftekApi } from "@/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { isReftekAccessAllowed } from "@/lib/reftek-access";
 import { cn } from "@/lib/utils";
 import type { ReftekCatalogItem } from "@/types";
 
@@ -65,7 +64,7 @@ export function ReftekAppGrid({ apps }: { apps: ReftekCatalogItem[] }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [launchingId, setLaunchingId] = useState<string | null>(null);
-  const canOpen = isReftekAccessAllowed(user?.phone);
+  const canOpen = user?.isDeveloper === true;
 
   const launchMutation = useMutation({
     mutationFn: (appId: string) => reftekApi.launchApp(appId),

@@ -4,6 +4,7 @@ const { prisma, walletService, signUserToken } = vi.hoisted(() => ({
   prisma: {
     voucherPlatform: { findUnique: vi.fn() },
     user: { upsert: vi.fn() },
+    developerPhone: { findMany: vi.fn() },
   },
   walletService: { getUserInfo: vi.fn() },
   signUserToken: vi.fn(() => "jwt-token"),
@@ -24,6 +25,7 @@ vi.mock("../services/wallet.service.js", () => ({ walletService }));
 
 vi.mock("../middleware/auth.js", () => ({ signUserToken }));
 
+import { clearDeveloperPhoneCache } from "../lib/developer-access.js";
 import { authenticateWithWalletToken } from "../services/auth.service.js";
 import { AppError } from "../lib/errors.js";
 
@@ -45,8 +47,10 @@ const dbUser = {
 describe("authenticateWithWalletToken", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearDeveloperPhoneCache();
     walletService.getUserInfo.mockResolvedValue(walletUser);
     prisma.user.upsert.mockResolvedValue(dbUser);
+    prisma.developerPhone.findMany.mockResolvedValue([]);
     signUserToken.mockReturnValue("jwt-token");
   });
 

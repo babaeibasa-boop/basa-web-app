@@ -122,6 +122,12 @@ export const adminApi = {
   getPhones: () => api.get<unknown, ApiResponse<{ id: string; phone: string; admin: { fullName: string } }[]>>("/admin/phones"),
   addPhone: (phone: string) => api.post<unknown, ApiResponse<unknown>>("/admin/phones", { phone }),
   deletePhone: (id: string) => api.delete<unknown, ApiResponse<null>>(`/admin/phones/${id}`),
+  getDeveloperPhones: () =>
+    api.get<unknown, ApiResponse<{ id: string; phone: string; createdAt: string }[]>>("/admin/developer-phones"),
+  addDeveloperPhone: (phone: string) =>
+    api.post<unknown, ApiResponse<{ id: string; phone: string }>>("/admin/developer-phones", { phone }),
+  deleteDeveloperPhone: (id: string) =>
+    api.delete<unknown, ApiResponse<null>>(`/admin/developer-phones/${id}`),
   getCategories: () => api.get<unknown, ApiResponse<Category[]>>("/admin/categories"),
   createCategory: (data: { name: string; slug: string; sortOrder?: number }) =>
     api.post<unknown, ApiResponse<Category>>("/admin/categories", data),
