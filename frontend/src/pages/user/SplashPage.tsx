@@ -26,6 +26,11 @@ export default function SplashPage() {
     }
 
     if (!ut) {
+      const redirect = searchParams.get("redirect");
+      const loginSearch = new URLSearchParams();
+      if (redirect) loginSearch.set("redirect", redirect);
+      const qs = loginSearch.toString();
+      navigate(qs ? `/login?${qs}` : "/login", { replace: true });
       return;
     }
 
@@ -42,7 +47,6 @@ export default function SplashPage() {
   }, [searchParams, login, navigate, isAuthenticated]);
 
   const ut = searchParams.get("ut");
-  const waitingForWallet = !isAuthenticated && !ut;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4">
@@ -51,12 +55,10 @@ export default function SplashPage() {
         <p className="mt-2 text-muted-foreground">
           {loginError
             ? "ورود ناموفق بود. لطفاً مجددا از کیف پول باسا وارد شوید."
-            : waitingForWallet
-              ? "برای ورود باید از طریق کیف پول باسا وارد شوید."
-              : "در حال ورود..."}
+            : "در حال ورود..."}
         </p>
       </div>
-      {!loginError && !waitingForWallet && (
+      {!loginError && ut && (
         <div className="w-full max-w-xs space-y-3">
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-3/4 mx-auto" />

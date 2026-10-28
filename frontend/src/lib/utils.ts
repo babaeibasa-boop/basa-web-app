@@ -115,6 +115,25 @@ export function splashLoginSearch(
   return params.toString();
 }
 
+/** Build `?redirect=...` for unauthenticated redirects to `/login`. */
+export function loginRedirectSearch(
+  pathname: string,
+  currentParams: URLSearchParams,
+): string {
+  const preserved = new URLSearchParams(currentParams);
+  preserved.delete("ut");
+  const extra = preserved.toString();
+  const redirect = pathname + (extra ? `?${extra}` : "");
+  const params = new URLSearchParams();
+  params.set("redirect", redirect);
+  return params.toString();
+}
+
+/** Canonical OTP phone: 98 + 10 national digits (no leading 0). */
+export function toCanonicalLoginPhone(nationalDigits: string): string {
+  return `98${nationalDigits}`;
+}
+
 export function safeRedirectPath(value: string | null | undefined, fallback: string): string {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("://")) {
     return fallback;

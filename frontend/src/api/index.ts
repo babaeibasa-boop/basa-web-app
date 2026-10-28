@@ -34,6 +34,12 @@ export const authApi = {
       ...(platformSlug ? { platformSlug } : {}),
       ...(walletScope ? { walletScope } : {}),
     }),
+  getCaptcha: () =>
+    api.get<unknown, ApiResponse<{ captchaId: string; svg: string }>>("/auth/captcha"),
+  requestOtp: (data: { phone: string; captchaId: string; captchaCode: string }) =>
+    api.post<unknown, ApiResponse<{ expiresIn: number }>>("/auth/otp/request", data),
+  verifyOtp: (data: { phone: string; code: string }) =>
+    api.post<unknown, ApiResponse<{ token: string; user: User }>>("/auth/otp/verify", data),
   getProfile: () => api.get<unknown, ApiResponse<User>>("/auth/profile"),
 };
 

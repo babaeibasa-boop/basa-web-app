@@ -4,8 +4,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, AdminAuthProvider, useAuth, useAdminAuth } from "@/hooks/use-auth";
 import { ToastProvider } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/badge";
-import { isCreditsPath, splashLoginSearch, voucherPlatformSlugFromPath } from "@/lib/utils";
+import { isCreditsPath, loginRedirectSearch, splashLoginSearch, voucherPlatformSlugFromPath } from "@/lib/utils";
 import SplashPage from "@/pages/user/SplashPage";
+import LoginPage from "@/pages/user/LoginPage";
 import OrdersPage from "@/pages/user/OrdersPage";
 import OrderDetailPage from "@/pages/user/OrderDetailPage";
 import CreateOrderPage from "@/pages/user/CreateOrderPage";
@@ -49,7 +50,7 @@ function UserGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={`/login?${loginRedirectSearch(location.pathname, searchParams)}`} replace />;
   }
   return <>{children}</>;
 }
@@ -94,6 +95,7 @@ export default function App() {
                 <Routes>
                   {/* Auth bootstrap for ?ut= wallet login; required by UserGuard */}
                   <Route path="/" element={<SplashPage />} />
+                  <Route path="/login" element={<LoginPage />} />
                   <Route path="/reftek" element={<UserGuard><ReftekPage /></UserGuard>} />
                   <Route path="/reftek/category/:category" element={<UserGuard><ReftekCategoryPage /></UserGuard>} />
                   <Route path="/voucher" element={<Navigate to="/reftek" replace />} />

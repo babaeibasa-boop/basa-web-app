@@ -21,6 +21,15 @@ function errorMessage(error: unknown) {
   return "خطای ارتباط با سرور";
 }
 
+function redirectToUserLogin() {
+  const { pathname, search } = window.location;
+  if (pathname.startsWith("/admin") || pathname === "/login") return;
+  const redirect = pathname + search;
+  const params = new URLSearchParams();
+  params.set("redirect", redirect);
+  window.location.href = `/login?${params.toString()}`;
+}
+
 api.interceptors.request.use((config) => {
   const userToken = localStorage.getItem("userToken");
   const adminToken = localStorage.getItem("adminToken");
@@ -34,12 +43,18 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    // Expired/invalid admin session: clear it and send the admin back to login.
-    if (error.response?.status === 401 && error.config?.url?.startsWith("/admin")) {
-      localStorage.removeItem("adminToken");
-      localStorage.removeItem("admin");
-      if (window.location.pathname.startsWith("/admin") && window.location.pathname !== "/admin/login") {
-        window.location.href = "/admin/login";
+    if (error.response?.status === 401) {
+      const url = String(error.config?.url ?? "");
+      if (url.startsWith("/admin")) {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("admin");
+        if (window.location.pathname.startsWith("/admin") && window.location.pathname !== "/admin/login") {
+          window.location.href = "/admin/login";
+        }
+      } else if (!url.startsWith("/auth/otp") && !url.startsWith("/auth/wallet") && !url.startsWith("/auth/captcha")) {
+        localStorage.removeItem("userToken");
+        localStorage.removeItem("user");
+        redirectToUserLogin();
       }
     }
     return Promise.reject(new Error(errorMessage(error)));
