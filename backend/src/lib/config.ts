@@ -26,7 +26,7 @@ const configSchema = z.object({
   nationalCodeMatchToken: z.string().default(""),
 });
 
-export const config = configSchema.parse({
+const parsedConfig = configSchema.parse({
   port: process.env.PORT,
   nodeEnv: process.env.NODE_ENV,
   databaseUrl: process.env.DATABASE_URL,
@@ -47,3 +47,21 @@ export const config = configSchema.parse({
   nationalCodeMatchUrl: process.env.NATIONAL_CODE_MATCH_URL,
   nationalCodeMatchToken: process.env.NATIONAL_CODE_MATCH_TOKEN,
 });
+
+/**
+ * Hop count (or a proxy-addr keyword such as "loopback") for Express `trust proxy`.
+ * Boolean `true` is rejected: express-rate-limit throws ERR_ERL_PERMISSIVE_TRUST_PROXY
+ * and would turn every limited route into a 500. One hop matches Liara or a single nginx.
+ */
+export function resolveTrustProxy(raw: string | undefined): boolean | number | string {
+  const value = raw?.trim();
+  if (!value || value === "true") return 1;
+  if (value === "false") return false;
+  if (/^\d+$/.test(value)) return Number(value);
+  return value;
+}
+
+export const config = {
+  ...parsedConfig,
+  trustProxy: resolveTrustProxy(process.env.TRUST_PROXY),
+};

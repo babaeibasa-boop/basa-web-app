@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { authApi } from "@/api";
 import { Skeleton } from "@/components/ui/badge";
+import {
+  buildWalletLoginAttemptKey,
+  shouldStartWalletLogin,
+} from "@/lib/wallet-login-guard";
 import { isCreditsPath, safeRedirectPath, voucherPlatformSlugFromPath } from "@/lib/utils";
 
 const postLoginPath = import.meta.env.PROD ? "/reftek" : "/orders";
@@ -12,6 +16,7 @@ export default function SplashPage() {
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
   const [loginError, setLoginError] = useState(false);
+  const walletAttempt = useRef<string | null>(null);
 
   useEffect(() => {
     const ut = searchParams.get("ut");
@@ -33,6 +38,10 @@ export default function SplashPage() {
       navigate(qs ? `/login?${qs}` : "/login", { replace: true });
       return;
     }
+
+    const attempt = buildWalletLoginAttemptKey(ut, platformSlug, walletScope);
+    if (!shouldStartWalletLogin(walletAttempt.current, attempt)) return;
+    walletAttempt.current = attempt;
 
     setLoginError(false);
     authApi

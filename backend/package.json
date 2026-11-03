@@ -14,7 +14,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:wallet-ratelimit": "vitest run src/__tests__/wallet-auth-ratelimit.load.test.ts src/__tests__/wallet-login-guard.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",

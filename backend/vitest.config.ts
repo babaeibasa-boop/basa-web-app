@@ -15,6 +15,7 @@ export default defineConfig({
       WALLET_CREDITS_API_TOKEN: "credits-wallet-token",
       WALLET_CALLBACK_URL: "http://localhost:5173/payment/result",
       TOP_API_TOKEN: "top-token",
+      TRUST_PROXY: "1",
     },
   },
 });
