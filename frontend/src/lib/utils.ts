@@ -115,18 +115,30 @@ export function splashLoginSearch(
   return params.toString();
 }
 
-/** Build `?redirect=...` for unauthenticated redirects to `/login`. */
-export function loginRedirectSearch(
+/**
+ * Intended post-login destination from the current location.
+ * On splash (`/`), uses nested `?redirect=`; otherwise current path without `ut`.
+ */
+export function intendedLoginRedirect(
   pathname: string,
   currentParams: URLSearchParams,
-): string {
+): string | null {
+  if (pathname === "/" || pathname === "") {
+    return currentParams.get("redirect");
+  }
   const preserved = new URLSearchParams(currentParams);
   preserved.delete("ut");
   const extra = preserved.toString();
-  const redirect = pathname + (extra ? `?${extra}` : "");
+  return pathname + (extra ? `?${extra}` : "");
+}
+
+/** Full `/login` href that returns the user to the page they tried to open. */
+export function buildLoginHref(pathname: string, currentParams: URLSearchParams): string {
+  const redirect = intendedLoginRedirect(pathname, currentParams);
   const params = new URLSearchParams();
-  params.set("redirect", redirect);
-  return params.toString();
+  if (redirect) params.set("redirect", redirect);
+  const qs = params.toString();
+  return qs ? `/login?${qs}` : "/login";
 }
 
 /** Canonical OTP phone: 98 + 10 national digits (no leading 0). */

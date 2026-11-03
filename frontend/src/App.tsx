@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, AdminAuthProvider, useAuth, useAdminAuth } from "@/hooks/use-auth";
 import { ToastProvider } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/badge";
-import { isCreditsPath, loginRedirectSearch, splashLoginSearch, voucherPlatformSlugFromPath } from "@/lib/utils";
+import { buildLoginHref, isCreditsPath, splashLoginSearch, voucherPlatformSlugFromPath } from "@/lib/utils";
 import SplashPage from "@/pages/user/SplashPage";
 import LoginPage from "@/pages/user/LoginPage";
 import OrdersPage from "@/pages/user/OrdersPage";
@@ -50,7 +50,7 @@ function UserGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={`/login?${loginRedirectSearch(location.pathname, searchParams)}`} replace />;
+    return <Navigate to={buildLoginHref(location.pathname, searchParams)} replace />;
   }
   return <>{children}</>;
 }
