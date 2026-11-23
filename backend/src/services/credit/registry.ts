@@ -2,12 +2,14 @@ import { AppError } from "../../lib/errors.js";
 import { barookCreditAdapter } from "./adapters/barook.adapter.js";
 import { firouzehCreditAdapter } from "./adapters/firouzeh.adapter.js";
 import { mockCreditAdapter } from "./adapters/mock.adapter.js";
+import { pinketCreditAdapter } from "./adapters/pinket.adapter.js";
 import type { CreditAdapter } from "./types.js";
 
 const adapters = new Map<string, CreditAdapter>([
   [mockCreditAdapter.key, mockCreditAdapter],
   [barookCreditAdapter.key, barookCreditAdapter],
   [firouzehCreditAdapter.key, firouzehCreditAdapter],
+  [pinketCreditAdapter.key, pinketCreditAdapter],
 ]);
 
 export function listCreditAdapters(): Array<{
